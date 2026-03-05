@@ -1,17 +1,17 @@
 const CACHE_NAME = 'rtm-shell-v1';
 const SHELL_FILES = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/css/app.css',
-  '/js/app.js',
-  '/js/settings.js',
-  '/js/api.js',
-  '/js/chunker.js',
-  '/js/player.js',
-  '/js/media-session.js',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './css/app.css',
+  './js/app.js',
+  './js/settings.js',
+  './js/api.js',
+  './js/chunker.js',
+  './js/player.js',
+  './js/media-session.js',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
