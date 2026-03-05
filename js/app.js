@@ -18,6 +18,8 @@
     btnHistory: $('btn-history'),
     btnPaste: $('btn-paste'),
     btnExpand: $('btn-expand'),
+    expandIcon: $('expand-icon'),
+    expandLabel: $('expand-label'),
     textStats: $('text-stats'),
     textInput: $('text-input'),
     readerView: $('reader-view'),
@@ -452,6 +454,8 @@
     els.btnExpand.addEventListener('click', () => {
       const isExpanded = els.textInput.classList.toggle('expanded');
       els.readerView.classList.toggle('expanded', isExpanded);
+      els.btnExpand.classList.toggle('active', isExpanded);
+      els.expandLabel.textContent = isExpanded ? 'Show less' : 'Show more';
       if (isExpanded) {
         els.textInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }

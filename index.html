@@ -56,10 +56,13 @@
         <div class="text-toolbar">
           <button id="btn-paste" class="btn-tool" title="Paste from clipboard">&#128203; Paste</button>
           <span id="text-stats" class="text-stats"></span>
-          <button id="btn-expand" class="btn-tool" title="Expand text area">&#8597;</button>
         </div>
         <textarea id="text-input" class="form-textarea" placeholder="Paste your text here..."></textarea>
         <div id="reader-view" class="reader-view" hidden></div>
+        <button id="btn-expand" class="btn-expand" aria-label="Toggle full screen text">
+          <span id="expand-icon" class="expand-icon">&#9660;</span>
+          <span id="expand-label">Show more</span>
+        </button>
       </div>
 
       <!-- Voice Selection -->

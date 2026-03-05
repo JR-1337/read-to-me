@@ -228,7 +228,7 @@ body {
 .form-textarea {
   min-height: 150px;
   max-height: 50vh;
-  resize: vertical;
+  resize: none;
   line-height: 1.6;
 }
 
@@ -463,11 +463,49 @@ body {
   text-overflow: ellipsis;
 }
 
+/* ─── Expand Toggle Bar ─── */
+
+.btn-expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  margin-top: 4px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-expand:hover,
+.btn-expand:active {
+  background: var(--surface-hover);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.expand-icon {
+  transition: transform 300ms ease;
+  font-size: 0.7rem;
+}
+
+.btn-expand.active .expand-icon {
+  transform: rotate(180deg);
+}
+
 /* Expanded mode: textarea/reader fills the viewport */
 .form-textarea.expanded,
 .reader-view.expanded {
-  min-height: calc(100vh - 120px);
-  min-height: calc(100dvh - 120px);
+  min-height: calc(100vh - 160px);
+  min-height: calc(100dvh - 160px);
   max-height: none;
 }
 
