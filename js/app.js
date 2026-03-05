@@ -184,14 +184,23 @@
       Settings.set({ speakingRate: parseFloat(els.speedControl.value) });
     });
 
-    // Play
+    // Play — starts from cursor position or selection
     els.btnPlay.addEventListener('click', () => {
-      const text = els.textInput.value.trim();
-      if (!text) {
+      const fullText = els.textInput.value.trim();
+      if (!fullText) {
         showError('Paste some text first');
         return;
       }
       hideError();
+
+      // If there's a cursor position or selection, start from there
+      const start = els.textInput.selectionStart;
+      const text = start > 0 ? els.textInput.value.slice(start).trim() : fullText;
+
+      if (!text) {
+        showError('No text after cursor position');
+        return;
+      }
 
       const settings = Settings.get();
       Player.play(text, {
