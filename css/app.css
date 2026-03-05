@@ -501,12 +501,11 @@ body {
   transform: rotate(180deg);
 }
 
-/* Expanded mode: textarea/reader fills the viewport */
+/* Expanded mode: large but still scrollable past */
 .form-textarea.expanded,
 .reader-view.expanded {
-  min-height: calc(100vh - 160px);
-  min-height: calc(100dvh - 160px);
-  max-height: none;
+  min-height: 60vh;
+  max-height: 60vh;
 }
 
 /* ─── Reader View (word highlighting) ─── */
@@ -539,9 +538,10 @@ body {
 
 .reader-view .chunk.active {
   color: var(--text);
-  background: rgba(77, 101, 255, 0.08);
+  background: rgba(77, 101, 255, 0.15);
   border-radius: 4px;
-  padding: 2px 0;
+  padding: 4px 4px 4px 12px;
+  border-left: 3px solid var(--accent);
 }
 
 .reader-view .word {
@@ -597,6 +597,31 @@ body {
   font-size: 0.65rem;
   color: var(--text-secondary);
   white-space: nowrap;
+}
+
+.history-delete {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.history-delete:hover,
+.history-delete:active {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: rgba(255, 85, 85, 0.1);
 }
 
 .history-empty {

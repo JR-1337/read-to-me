@@ -3,6 +3,8 @@ const Player = (() => {
   let audioContext = null;
   let previousBlobUrl = null;
   let audioChunksBase64 = [];
+  let prefetchedBase64 = null;
+  let prefetchIndex = -1;
 
   const state = {
     queue: [],
@@ -12,12 +14,10 @@ const Player = (() => {
     config: null
   };
 
-  // Word timing for current chunk
   let chunkWords = [];
   let wordTimings = [];
   let currentWordIndex = -1;
 
-  // Callbacks
   let onProgress = null;
   let onStateChange = null;
   let onError = null;
@@ -53,6 +53,8 @@ const Player = (() => {
     state.isPaused = false;
     state.config = config;
     audioChunksBase64 = [];
+    prefetchedBase64 = null;
+    prefetchIndex = -1;
 
     unlockAudio();
 
@@ -83,7 +85,16 @@ const Player = (() => {
     onChunkStart(index, state.queue[index]);
 
     try {
-      const base64 = await Api.synthesizeChunk(state.config, state.queue[index]);
+      let base64;
+
+      // Use prefetched audio if available for this index
+      if (prefetchedBase64 && prefetchIndex === index) {
+        base64 = prefetchedBase64;
+        prefetchedBase64 = null;
+        prefetchIndex = -1;
+      } else {
+        base64 = await Api.synthesizeChunk(state.config, state.queue[index]);
+      }
 
       if (!state.isPlaying) return;
 
@@ -98,9 +109,25 @@ const Player = (() => {
 
       audioEl.addEventListener('loadedmetadata', buildWordTimings, { once: true });
       await audioEl.play();
+
+      // Prefetch next chunk while this one plays
+      prefetchNext(index + 1);
     } catch (err) {
       onError(err.message);
       stop();
+    }
+  }
+
+  async function prefetchNext(nextIndex) {
+    if (nextIndex >= state.queue.length || !state.isPlaying) return;
+    try {
+      const base64 = await Api.synthesizeChunk(state.config, state.queue[nextIndex]);
+      if (state.isPlaying && state.currentIndex === nextIndex - 1) {
+        prefetchedBase64 = base64;
+        prefetchIndex = nextIndex;
+      }
+    } catch {
+      // Prefetch failed — will fall back to normal synthesis on ended
     }
   }
 
@@ -109,12 +136,14 @@ const Player = (() => {
     if (!duration || !isFinite(duration)) return;
 
     const actualWords = chunkWords.filter((w) => w.trim().length > 0);
-    const totalChars = actualWords.reduce((sum, w) => sum + w.length, 0);
+    // Use sqrt weighting: short words get proportionally more time,
+    // long words get less — closer to natural speech cadence
+    const totalWeight = actualWords.reduce((sum, w) => sum + Math.sqrt(w.length), 0);
 
     wordTimings = [];
     let cumulative = 0;
     for (const word of actualWords) {
-      cumulative += (word.length / totalChars) * duration;
+      cumulative += (Math.sqrt(word.length) / totalWeight) * duration;
       wordTimings.push(cumulative);
     }
   }
@@ -155,6 +184,8 @@ const Player = (() => {
     chunkWords = [];
     wordTimings = [];
     currentWordIndex = -1;
+    prefetchedBase64 = null;
+    prefetchIndex = -1;
     if (previousBlobUrl) {
       URL.revokeObjectURL(previousBlobUrl);
       previousBlobUrl = null;
@@ -191,6 +222,8 @@ const Player = (() => {
     chunkWords = [];
     wordTimings = [];
     currentWordIndex = -1;
+    prefetchedBase64 = null;
+    prefetchIndex = -1;
 
     if (previousBlobUrl) {
       URL.revokeObjectURL(previousBlobUrl);
@@ -211,7 +244,6 @@ const Player = (() => {
     }
   }
 
-  // Shared utility: base64 string → Uint8Array
   function base64ToBytes(base64) {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
@@ -240,7 +272,6 @@ const Player = (() => {
     return audioChunksBase64;
   }
 
-  // Build a combined MP3 blob from all synthesized chunks
   function buildDownloadBlob() {
     if (audioChunksBase64.length === 0) return null;
     const byteArrays = audioChunksBase64.map(base64ToBytes);

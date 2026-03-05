@@ -10,10 +10,8 @@
 
   const els = {
     errorBanner: $('error-banner'),
-    // Setup
     setupApiKey: $('setup-api-key'),
     btnSetupSave: $('btn-setup-save'),
-    // Main
     btnSettings: $('btn-settings'),
     btnHistory: $('btn-history'),
     btnPaste: $('btn-paste'),
@@ -27,8 +25,6 @@
     voiceSelect: $('voice-select'),
     speedControl: $('speed-control'),
     speedDisplay: $('speed-display'),
-    pitchControl: $('pitch-control'),
-    pitchDisplay: $('pitch-display'),
     btnPlay: $('btn-play'),
     btnPause: $('btn-pause'),
     btnResume: $('btn-resume'),
@@ -38,18 +34,14 @@
     progressFill: $('progress-fill'),
     progressText: $('progress-text'),
     audioEl: $('audio-el'),
-    // History
     historyList: $('history-list'),
     btnHistoryBack: $('btn-history-back'),
-    // Settings
     btnBack: $('btn-back'),
     settingsApiKey: $('settings-api-key'),
     settingsLang: $('settings-lang'),
     settingsVoice: $('settings-voice'),
     settingsSpeed: $('settings-speed'),
     settingsSpeedDisplay: $('settings-speed-display'),
-    settingsPitch: $('settings-pitch'),
-    settingsPitchDisplay: $('settings-pitch-display'),
     btnSaveSettings: $('btn-save-settings'),
     btnClearSettings: $('btn-clear-settings')
   };
@@ -57,13 +49,11 @@
   let voicesCache = [];
   let errorTimeout = null;
 
-  // Reader view state
   let activeChunkEl = null;
   let activeWordEl = null;
-  let activeWordSpans = null; // cached querySelectorAll for current chunk
+  let activeWordSpans = null;
   let chunkElements = [];
 
-  // Reusable DOM node for escaping HTML
   const escapeDiv = document.createElement('div');
 
   // ─── Utilities ───
@@ -77,11 +67,6 @@
     return parseFloat(val).toFixed(1) + 'x';
   }
 
-  function formatPitch(val) {
-    return String(parseInt(val));
-  }
-
-  // Wire a range slider: update display on input, optionally persist on change
   function wireSlider(sliderEl, displayEl, formatter, settingsKey) {
     sliderEl.addEventListener('input', () => {
       displayEl.textContent = formatter(sliderEl.value);
@@ -93,7 +78,6 @@
     }
   }
 
-  // Debounce helper
   let statsTimeout = null;
   function updateTextStats() {
     clearTimeout(statsTimeout);
@@ -193,7 +177,6 @@
     if (chunkIndex < chunkElements.length) {
       activeChunkEl = chunkElements[chunkIndex];
       activeChunkEl.classList.add('active');
-      // Cache word spans for this chunk — avoids querySelectorAll on every timeupdate
       activeWordSpans = activeChunkEl.querySelectorAll('.word');
       activeChunkEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
@@ -231,7 +214,7 @@
     URL.revokeObjectURL(url);
   }
 
-  // ─── History (event delegation) ───
+  // ─── History ───
 
   function renderHistory() {
     const history = Settings.getHistory();
@@ -246,12 +229,24 @@
       return `<div class="history-item" data-index="${i}">
         <span class="history-item-text">${escapeHtml(item.preview)}</span>
         <span class="history-item-date">${dateStr}</span>
+        <button class="history-delete" data-index="${i}" aria-label="Delete">\u2715</button>
       </div>`;
     }).join('');
   }
 
   function wireHistoryDelegation() {
     els.historyList.addEventListener('click', (e) => {
+      // Handle delete button
+      const deleteBtn = e.target.closest('.history-delete');
+      if (deleteBtn) {
+        e.stopPropagation();
+        const idx = parseInt(deleteBtn.dataset.index);
+        Settings.removeHistory(idx);
+        renderHistory();
+        return;
+      }
+
+      // Handle item click (load text)
       const item = e.target.closest('.history-item');
       if (!item) return;
       const idx = parseInt(item.dataset.index);
@@ -327,8 +322,6 @@
     filterVoices(voicesCache, els.langFilter.value, els.voiceSelect, settings.voiceName);
     els.speedControl.value = settings.speakingRate;
     els.speedDisplay.textContent = formatSpeed(settings.speakingRate);
-    els.pitchControl.value = settings.pitch || 0;
-    els.pitchDisplay.textContent = formatPitch(settings.pitch || 0);
   }
 
   async function initMain() {
@@ -376,15 +369,13 @@
       apiKey: settings.apiKey,
       voiceName: els.voiceSelect.value,
       languageCode: els.langFilter.value,
-      speakingRate: parseFloat(els.speedControl.value),
-      pitch: parseInt(els.pitchControl.value)
+      speakingRate: parseFloat(els.speedControl.value)
     };
   }
 
   function wireMainEvents() {
     els.textInput.addEventListener('input', updateTextStats);
 
-    // Clipboard paste
     els.btnPaste.addEventListener('click', async () => {
       try {
         const text = await navigator.clipboard.readText();
@@ -397,7 +388,6 @@
       }
     });
 
-    // Voice selectors
     els.langFilter.addEventListener('change', () => {
       filterVoices(voicesCache, els.langFilter.value, els.voiceSelect, Settings.get().voiceName);
       Settings.set({ languageCode: els.langFilter.value });
@@ -406,11 +396,8 @@
       Settings.set({ voiceName: els.voiceSelect.value });
     });
 
-    // Sliders (main view: auto-persist on change)
     wireSlider(els.speedControl, els.speedDisplay, formatSpeed, 'speakingRate');
-    wireSlider(els.pitchControl, els.pitchDisplay, formatPitch, 'pitch');
 
-    // Play
     els.btnPlay.addEventListener('click', () => {
       const fullText = els.textInput.value.trim();
       if (!fullText) {
@@ -436,7 +423,6 @@
     els.btnStop.addEventListener('click', () => Player.stop());
     els.btnDownload.addEventListener('click', downloadAudio);
 
-    // History (event delegation — one listener, wired once)
     els.btnHistory.addEventListener('click', () => {
       renderHistory();
       showView('history');
@@ -444,13 +430,11 @@
     els.btnHistoryBack.addEventListener('click', () => showView('main'));
     wireHistoryDelegation();
 
-    // Settings
     els.btnSettings.addEventListener('click', () => {
       openSettings();
       showView('settings');
     });
 
-    // Expand/collapse
     els.btnExpand.addEventListener('click', () => {
       const isExpanded = els.textInput.classList.toggle('expanded');
       els.readerView.classList.toggle('expanded', isExpanded);
@@ -486,8 +470,6 @@
     els.settingsApiKey.value = settings.apiKey;
     els.settingsSpeed.value = settings.speakingRate;
     els.settingsSpeedDisplay.textContent = formatSpeed(settings.speakingRate);
-    els.settingsPitch.value = settings.pitch || 0;
-    els.settingsPitchDisplay.textContent = formatPitch(settings.pitch || 0);
 
     if (voicesCache.length > 0) {
       populateLangFilter(voicesCache, els.settingsLang, settings.languageCode);
@@ -500,9 +482,7 @@
       filterVoices(voicesCache, els.settingsLang.value, els.settingsVoice, Settings.get().voiceName);
     });
 
-    // Settings sliders (display only — persisted on Save button)
     wireSlider(els.settingsSpeed, els.settingsSpeedDisplay, formatSpeed, null);
-    wireSlider(els.settingsPitch, els.settingsPitchDisplay, formatPitch, null);
 
     els.btnSaveSettings.addEventListener('click', async () => {
       const apiKey = els.settingsApiKey.value.trim();
@@ -526,8 +506,7 @@
           apiKey,
           languageCode: els.settingsLang.value,
           voiceName: els.settingsVoice.value,
-          speakingRate: parseFloat(els.settingsSpeed.value),
-          pitch: parseInt(els.settingsPitch.value)
+          speakingRate: parseFloat(els.settingsSpeed.value)
         });
 
         syncMainControls();

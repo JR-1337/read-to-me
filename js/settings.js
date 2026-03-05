@@ -2,14 +2,13 @@ const Settings = (() => {
   const STORAGE_KEY = 'rtm_settings';
   const HISTORY_KEY = 'rtm_history';
   const MAX_HISTORY = 10;
-  const MAX_HISTORY_TEXT_LEN = 50000; // ~50KB per item cap
+  const MAX_HISTORY_TEXT_LEN = 50000;
 
   const DEFAULTS = {
     apiKey: '',
     voiceName: 'en-US-Neural2-C',
     languageCode: 'en-US',
     speakingRate: 1.0,
-    pitch: 0,
     setupComplete: false
   };
 
@@ -59,7 +58,19 @@ const Settings = (() => {
       if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
       localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
     } catch {
-      // QuotaExceededError or other — silently ignore
+      // QuotaExceededError — silently ignore
+    }
+  }
+
+  function removeHistory(index) {
+    try {
+      const history = getHistory();
+      if (index >= 0 && index < history.length) {
+        history.splice(index, 1);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      }
+    } catch {
+      // ignore
     }
   }
 
@@ -67,5 +78,5 @@ const Settings = (() => {
     localStorage.removeItem(HISTORY_KEY);
   }
 
-  return { get, set, isSetupComplete, clear, getHistory, addHistory, clearHistory };
+  return { get, set, isSetupComplete, clear, getHistory, addHistory, removeHistory, clearHistory };
 })();
