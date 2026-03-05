@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rtm-shell-v4';
+const CACHE_NAME = 'rtm-shell-v5';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const SHELL_FILES = [
   './js/settings.js',
   './js/api.js',
   './js/chunker.js',
+  './js/audio-cache.js',
   './js/player.js',
   './js/media-session.js',
   './icons/icon-192.png',

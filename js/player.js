@@ -52,6 +52,7 @@ const Player = (() => {
     state.isPlaying = true;
     state.isPaused = false;
     state.config = config;
+    state.cachePrefix = config.voiceName + '_' + config.speakingRate;
     audioChunksBase64 = [];
     prefetchedBase64 = null;
     prefetchIndex = -1;
@@ -83,6 +84,7 @@ const Player = (() => {
     state.isPlaying = true;
     state.isPaused = false;
     state.config = config;
+    state.cachePrefix = config.voiceName + '_' + config.speakingRate;
     state.startFromChunk = 0;
     audioChunksBase64 = [];
     prefetchedBase64 = null;
@@ -119,13 +121,19 @@ const Player = (() => {
     try {
       let base64;
 
-      // Use prefetched audio if available for this index
-      if (prefetchedBase64 && prefetchIndex === index) {
+      // Check cache → prefetch → API (in priority order)
+      const cacheKey = (state.cachePrefix || '') + '_' + index;
+      const cached = await AudioCache.get(cacheKey);
+      if (cached) {
+        base64 = cached;
+      } else if (prefetchedBase64 && prefetchIndex === index) {
         base64 = prefetchedBase64;
         prefetchedBase64 = null;
         prefetchIndex = -1;
+        AudioCache.put(cacheKey, base64); // fire-and-forget
       } else {
         base64 = await Api.synthesizeChunk(state.config, state.queue[index]);
+        AudioCache.put(cacheKey, base64); // fire-and-forget
       }
 
       if (!state.isPlaying) return;
@@ -310,9 +318,25 @@ const Player = (() => {
     return new Blob(byteArrays, { type: 'audio/mpeg' });
   }
 
+  function skipNext() {
+    if (!state.isPlaying) return;
+    const nextIndex = state.currentIndex + 1;
+    if (nextIndex < state.queue.length) {
+      audioEl.pause();
+      synthesizeAndPlay(nextIndex);
+    }
+  }
+
+  function skipPrev() {
+    if (!state.isPlaying) return;
+    const prevIndex = Math.max(0, state.currentIndex - 1);
+    audioEl.pause();
+    synthesizeAndPlay(prevIndex);
+  }
+
   function getCurrentIndex() {
     return state.currentIndex;
   }
 
-  return { init, play, playFromChunk, pause, resume, stop, getState, getQueue, getAudioChunks, buildDownloadBlob, getCurrentIndex };
+  return { init, play, playFromChunk, pause, resume, stop, skipNext, skipPrev, getState, getQueue, getAudioChunks, buildDownloadBlob, getCurrentIndex };
 })();

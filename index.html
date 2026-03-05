@@ -89,12 +89,26 @@
         </div>
       </div>
 
+      <!-- Sleep Timer -->
+      <div class="form-group">
+        <label class="form-label">Sleep Timer</label>
+        <div class="sleep-row">
+          <button class="btn-tool sleep-btn" data-minutes="0">Off</button>
+          <button class="btn-tool sleep-btn" data-minutes="15">15m</button>
+          <button class="btn-tool sleep-btn" data-minutes="30">30m</button>
+          <button class="btn-tool sleep-btn" data-minutes="60">60m</button>
+          <span id="sleep-status" class="sleep-status"></span>
+        </div>
+      </div>
+
       <!-- Playback Controls -->
       <div class="controls">
+        <button id="btn-skip-prev" class="btn btn-secondary" hidden title="Previous chunk">&#9664;&#9664;</button>
         <button id="btn-play" class="btn btn-play">&#9654; Play</button>
         <button id="btn-pause" class="btn btn-secondary" hidden>&#10074;&#10074; Pause</button>
         <button id="btn-resume" class="btn btn-primary" hidden>&#9654; Resume</button>
         <button id="btn-stop" class="btn btn-secondary" hidden>&#9632; Stop</button>
+        <button id="btn-skip-next" class="btn btn-secondary" hidden title="Next chunk">&#9654;&#9654;</button>
       </div>
 
       <!-- Download -->
@@ -173,6 +187,7 @@
   <script src="./js/api.js"></script>
   <script src="./js/chunker.js"></script>
   <script src="./js/media-session.js"></script>
+  <script src="./js/audio-cache.js"></script>
   <script src="./js/player.js"></script>
   <script src="./js/app.js"></script>
   <script>

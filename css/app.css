@@ -299,6 +299,31 @@ body {
   font-weight: 700;
 }
 
+/* ─── Sleep Timer ─── */
+
+.sleep-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.sleep-btn {
+  flex: 1;
+}
+
+.sleep-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.sleep-status {
+  font-size: 0.7rem;
+  color: var(--accent);
+  white-space: nowrap;
+  min-width: 4ch;
+}
+
 /* ─── Playback Controls ─── */
 
 .controls {

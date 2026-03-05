@@ -25,11 +25,14 @@
     voiceSelect: $('voice-select'),
     speedControl: $('speed-control'),
     speedDisplay: $('speed-display'),
+    btnSkipPrev: $('btn-skip-prev'),
     btnPlay: $('btn-play'),
     btnPause: $('btn-pause'),
     btnResume: $('btn-resume'),
     btnStop: $('btn-stop'),
+    btnSkipNext: $('btn-skip-next'),
     btnDownload: $('btn-download'),
+    sleepStatus: $('sleep-status'),
     progressContainer: $('progress-container'),
     progressFill: $('progress-fill'),
     progressText: $('progress-text'),
@@ -54,9 +57,13 @@
   let activeWordSpans = null;
   let chunkElements = [];
 
+  // Sleep timer
+  let sleepTimerId = null;
+  let sleepEndTime = null;
+  let sleepDisplayId = null;
+
   const escapeDiv = document.createElement('div');
 
-  // Simple hash for comparing text identity
   function textHash(text) {
     let hash = 0;
     for (let i = 0; i < Math.min(text.length, 500); i++) {
@@ -102,6 +109,78 @@
       const costStr = costCents < 1 ? '<1\u00A2' : costCents.toFixed(1) + '\u00A2';
       els.textStats.textContent = `${words} words \u00B7 ${chars} chars \u00B7 ~${costStr}`;
     }, 80);
+  }
+
+  // ─── URL Detection & Article Extraction ───
+
+  function isUrl(text) {
+    return /^https?:\/\/\S+$/i.test(text.trim());
+  }
+
+  async function extractArticle(url) {
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error('Could not fetch URL');
+    const html = await res.text();
+
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('script, style, nav, header, footer, aside, .ad, .ads, .sidebar, .menu, .nav, .comment, .comments').forEach((el) => el.remove());
+
+    const article = doc.querySelector('article') || doc.querySelector('[role="main"]') || doc.querySelector('main') || doc.querySelector('.post-content') || doc.querySelector('.article-body') || doc.querySelector('.entry-content') || doc.body;
+
+    const paragraphs = article.querySelectorAll('p, h1, h2, h3, h4, li');
+    let text = '';
+    paragraphs.forEach((p) => {
+      const t = p.textContent.trim();
+      if (t.length > 20) text += t + '\n\n';
+    });
+
+    text = text.trim();
+    if (text.length < 50) {
+      text = article.textContent.replace(/\s+/g, ' ').trim();
+    }
+
+    if (text.length < 50) throw new Error('Could not extract readable text from URL');
+    return text;
+  }
+
+  // ─── Sleep Timer ───
+
+  function setSleepTimer(minutes) {
+    clearSleepTimer();
+
+    document.querySelectorAll('.sleep-btn').forEach((btn) => {
+      btn.classList.toggle('active', parseInt(btn.dataset.minutes) === minutes);
+    });
+
+    if (minutes === 0) {
+      els.sleepStatus.textContent = '';
+      return;
+    }
+
+    sleepEndTime = Date.now() + minutes * 60 * 1000;
+
+    sleepTimerId = setTimeout(() => {
+      Player.stop();
+      clearSleepTimer();
+      els.sleepStatus.textContent = 'Stopped';
+      setTimeout(() => { els.sleepStatus.textContent = ''; }, 3000);
+    }, minutes * 60 * 1000);
+
+    sleepDisplayId = setInterval(() => {
+      const remaining = Math.max(0, sleepEndTime - Date.now());
+      const mins = Math.ceil(remaining / 60000);
+      els.sleepStatus.textContent = mins + 'm';
+      if (remaining <= 0) clearInterval(sleepDisplayId);
+    }, 10000);
+
+    els.sleepStatus.textContent = minutes + 'm';
+  }
+
+  function clearSleepTimer() {
+    if (sleepTimerId) { clearTimeout(sleepTimerId); sleepTimerId = null; }
+    if (sleepDisplayId) { clearInterval(sleepDisplayId); sleepDisplayId = null; }
+    sleepEndTime = null;
   }
 
   // ─── View Management ───
@@ -245,21 +324,18 @@
 
   function wireHistoryDelegation() {
     els.historyList.addEventListener('click', (e) => {
-      // Handle delete button
       const deleteBtn = e.target.closest('.history-delete');
       if (deleteBtn) {
         e.stopPropagation();
-        const idx = parseInt(deleteBtn.dataset.index);
-        Settings.removeHistory(idx);
+        Settings.removeHistory(parseInt(deleteBtn.dataset.index));
         renderHistory();
         return;
       }
 
-      // Handle item click (load text)
       const item = e.target.closest('.history-item');
       if (!item) return;
-      const idx = parseInt(item.dataset.index);
       const history = Settings.getHistory();
+      const idx = parseInt(item.dataset.index);
       if (history[idx]) {
         els.textInput.value = history[idx].text;
         updateTextStats();
@@ -364,7 +440,6 @@
         } else if (newState === 'stopped') {
           hideReaderView();
           els.btnDownload.hidden = Player.getAudioChunks().length === 0;
-          // Clear saved position on normal completion (not on stop mid-play)
           if (Player.getAudioChunks().length > 0 && Player.getCurrentIndex() >= Player.getQueue().length - 1) {
             Settings.clearPosition();
           }
@@ -372,7 +447,6 @@
       },
       onChunkStart: (chunkIndex) => {
         highlightChunk(chunkIndex);
-        // Save position so we can resume after crash/close
         const text = els.textInput.value.trim();
         if (text) Settings.savePosition(textHash(text), chunkIndex);
       },
@@ -389,6 +463,60 @@
       languageCode: els.langFilter.value,
       speakingRate: parseFloat(els.speedControl.value)
     };
+  }
+
+  async function handlePlay() {
+    let fullText = els.textInput.value.trim();
+    if (!fullText) {
+      showError('Paste some text first');
+      return;
+    }
+    hideError();
+    els.btnDownload.hidden = true;
+
+    // URL detection: extract article text
+    if (isUrl(fullText)) {
+      els.btnPlay.textContent = 'Extracting...';
+      els.btnPlay.disabled = true;
+      try {
+        const article = await extractArticle(fullText);
+        els.textInput.value = article;
+        fullText = article;
+        updateTextStats();
+      } catch (err) {
+        showError(err.message);
+        return;
+      } finally {
+        els.btnPlay.textContent = '\u25B6 Play';
+        els.btnPlay.disabled = false;
+      }
+    }
+
+    // Cursor-based start
+    const start = els.textInput.selectionStart;
+    if (start > 0) {
+      const text = els.textInput.value.slice(start).trim();
+      if (!text) {
+        showError('No text after cursor position');
+        return;
+      }
+      Settings.clearPosition();
+      Settings.addHistory(fullText);
+      Player.play(text, buildPlayConfig());
+      return;
+    }
+
+    // Saved position recovery
+    const saved = Settings.getPosition();
+    const hash = textHash(fullText);
+    if (saved && saved.textHash === hash && saved.chunkIndex > 0) {
+      Settings.addHistory(fullText);
+      Player.playFromChunk(fullText, buildPlayConfig(), saved.chunkIndex);
+      return;
+    }
+
+    Settings.addHistory(fullText);
+    Player.play(fullText, buildPlayConfig());
   }
 
   function wireMainEvents() {
@@ -416,46 +544,17 @@
 
     wireSlider(els.speedControl, els.speedDisplay, formatSpeed, 'speakingRate');
 
-    els.btnPlay.addEventListener('click', () => {
-      const fullText = els.textInput.value.trim();
-      if (!fullText) {
-        showError('Paste some text first');
-        return;
-      }
-      hideError();
-      els.btnDownload.hidden = true;
-
-      // If cursor is placed mid-text, start from cursor
-      const start = els.textInput.selectionStart;
-      if (start > 0) {
-        const text = els.textInput.value.slice(start).trim();
-        if (!text) {
-          showError('No text after cursor position');
-          return;
-        }
-        Settings.clearPosition();
-        Settings.addHistory(fullText);
-        Player.play(text, buildPlayConfig());
-        return;
-      }
-
-      // No cursor — check for saved position (crash recovery)
-      const saved = Settings.getPosition();
-      const hash = textHash(fullText);
-      if (saved && saved.textHash === hash && saved.chunkIndex > 0) {
-        Settings.addHistory(fullText);
-        Player.playFromChunk(fullText, buildPlayConfig(), saved.chunkIndex);
-        return;
-      }
-
-      // Fresh start
-      Settings.addHistory(fullText);
-      Player.play(fullText, buildPlayConfig());
+    // Sleep timer
+    document.querySelectorAll('.sleep-btn').forEach((btn) => {
+      btn.addEventListener('click', () => setSleepTimer(parseInt(btn.dataset.minutes)));
     });
 
+    els.btnPlay.addEventListener('click', handlePlay);
     els.btnPause.addEventListener('click', () => Player.pause());
     els.btnResume.addEventListener('click', () => Player.resume());
-    els.btnStop.addEventListener('click', () => Player.stop());
+    els.btnStop.addEventListener('click', () => { Player.stop(); clearSleepTimer(); });
+    els.btnSkipPrev.addEventListener('click', () => Player.skipPrev());
+    els.btnSkipNext.addEventListener('click', () => Player.skipNext());
     els.btnDownload.addEventListener('click', downloadAudio);
 
     els.btnHistory.addEventListener('click', () => {
@@ -490,6 +589,8 @@
     els.btnPause.hidden = !playing;
     els.btnResume.hidden = !paused;
     els.btnStop.hidden = stopped;
+    els.btnSkipPrev.hidden = stopped;
+    els.btnSkipNext.hidden = stopped;
     els.btnDownload.hidden = playing || paused || els.btnDownload.hidden;
 
     if (stopped) {
@@ -563,14 +664,32 @@
     els.btnClearSettings.addEventListener('click', () => {
       if (confirm('Clear all settings and data? You will need to re-enter your API key.')) {
         Player.stop();
+        clearSleepTimer();
         Settings.clear();
         Settings.clearHistory();
+        AudioCache.clear();
         sessionStorage.removeItem('rtm_voices_cache');
         voicesCache = [];
         els.setupApiKey.value = '';
         showView('setup');
       }
     });
+  }
+
+  // ─── Share Target ───
+
+  function handleShareTarget() {
+    const params = new URLSearchParams(window.location.search);
+    const sharedText = params.get('text') || '';
+    const sharedUrl = params.get('url') || '';
+    const sharedTitle = params.get('title') || '';
+
+    let content = sharedText || sharedUrl || sharedTitle;
+    if (content) {
+      els.textInput.value = content;
+      updateTextStats();
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }
 
   // ─── Init ───
@@ -582,6 +701,7 @@
     if (Settings.isSetupComplete()) {
       showView('main');
       await initMain();
+      handleShareTarget();
       updateTextStats();
     } else {
       showView('setup');
