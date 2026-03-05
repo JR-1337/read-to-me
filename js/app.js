@@ -56,6 +56,15 @@
 
   const escapeDiv = document.createElement('div');
 
+  // Simple hash for comparing text identity
+  function textHash(text) {
+    let hash = 0;
+    for (let i = 0; i < Math.min(text.length, 500); i++) {
+      hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+    }
+    return hash + '_' + text.length;
+  }
+
   // ─── Utilities ───
 
   function escapeHtml(str) {
@@ -355,9 +364,18 @@
         } else if (newState === 'stopped') {
           hideReaderView();
           els.btnDownload.hidden = Player.getAudioChunks().length === 0;
+          // Clear saved position on normal completion (not on stop mid-play)
+          if (Player.getAudioChunks().length > 0 && Player.getCurrentIndex() >= Player.getQueue().length - 1) {
+            Settings.clearPosition();
+          }
         }
       },
-      onChunkStart: highlightChunk,
+      onChunkStart: (chunkIndex) => {
+        highlightChunk(chunkIndex);
+        // Save position so we can resume after crash/close
+        const text = els.textInput.value.trim();
+        if (text) Settings.savePosition(textHash(text), chunkIndex);
+      },
       onWordUpdate: highlightWord,
       onError: showError
     });
@@ -407,15 +425,32 @@
       hideError();
       els.btnDownload.hidden = true;
 
+      // If cursor is placed mid-text, start from cursor
       const start = els.textInput.selectionStart;
-      const text = start > 0 ? els.textInput.value.slice(start).trim() : fullText;
-      if (!text) {
-        showError('No text after cursor position');
+      if (start > 0) {
+        const text = els.textInput.value.slice(start).trim();
+        if (!text) {
+          showError('No text after cursor position');
+          return;
+        }
+        Settings.clearPosition();
+        Settings.addHistory(fullText);
+        Player.play(text, buildPlayConfig());
         return;
       }
 
+      // No cursor — check for saved position (crash recovery)
+      const saved = Settings.getPosition();
+      const hash = textHash(fullText);
+      if (saved && saved.textHash === hash && saved.chunkIndex > 0) {
+        Settings.addHistory(fullText);
+        Player.playFromChunk(fullText, buildPlayConfig(), saved.chunkIndex);
+        return;
+      }
+
+      // Fresh start
       Settings.addHistory(fullText);
-      Player.play(text, buildPlayConfig());
+      Player.play(fullText, buildPlayConfig());
     });
 
     els.btnPause.addEventListener('click', () => Player.pause());

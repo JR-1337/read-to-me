@@ -67,7 +67,39 @@ const Player = (() => {
     MediaSessionManager.updateState('playing');
 
     onStateChange('playing', text);
-    synthesizeAndPlay(0);
+    synthesizeAndPlay(state.startFromChunk || 0);
+    state.startFromChunk = 0;
+  }
+
+  function playFromChunk(text, config, chunkIndex) {
+    const chunks = Chunker.chunkText(text);
+    if (chunks.length === 0 || chunkIndex >= chunks.length) {
+      play(text, config);
+      return;
+    }
+
+    state.queue = chunks;
+    state.currentIndex = chunkIndex;
+    state.isPlaying = true;
+    state.isPaused = false;
+    state.config = config;
+    state.startFromChunk = 0;
+    audioChunksBase64 = [];
+    prefetchedBase64 = null;
+    prefetchIndex = -1;
+
+    unlockAudio();
+
+    const title = text.length > 60 ? text.slice(0, 57) + '...' : text;
+    MediaSessionManager.setup(title, {
+      play: resume,
+      pause: pause,
+      stop: stop
+    });
+    MediaSessionManager.updateState('playing');
+
+    onStateChange('playing', text);
+    synthesizeAndPlay(chunkIndex);
   }
 
   async function synthesizeAndPlay(index) {
@@ -278,5 +310,9 @@ const Player = (() => {
     return new Blob(byteArrays, { type: 'audio/mpeg' });
   }
 
-  return { init, play, pause, resume, stop, getState, getQueue, getAudioChunks, buildDownloadBlob };
+  function getCurrentIndex() {
+    return state.currentIndex;
+  }
+
+  return { init, play, playFromChunk, pause, resume, stop, getState, getQueue, getAudioChunks, buildDownloadBlob, getCurrentIndex };
 })();

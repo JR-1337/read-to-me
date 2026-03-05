@@ -78,5 +78,27 @@ const Settings = (() => {
     localStorage.removeItem(HISTORY_KEY);
   }
 
-  return { get, set, isSetupComplete, clear, getHistory, addHistory, removeHistory, clearHistory };
+  // ─── Playback Position ───
+
+  const POSITION_KEY = 'rtm_position';
+
+  function savePosition(textHash, chunkIndex) {
+    try {
+      localStorage.setItem(POSITION_KEY, JSON.stringify({ textHash, chunkIndex }));
+    } catch { /* ignore */ }
+  }
+
+  function getPosition() {
+    try {
+      return JSON.parse(localStorage.getItem(POSITION_KEY) || 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  function clearPosition() {
+    localStorage.removeItem(POSITION_KEY);
+  }
+
+  return { get, set, isSetupComplete, clear, getHistory, addHistory, removeHistory, clearHistory, savePosition, getPosition, clearPosition };
 })();
