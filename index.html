@@ -16,10 +16,10 @@
 <body>
   <div class="app-container">
 
-    <!-- Error Banner (shared across views) -->
+    <!-- Error Banner -->
     <div id="error-banner" class="error-banner" role="alert"></div>
 
-    <!-- ==================== SETUP VIEW ==================== -->
+    <!-- ===== SETUP VIEW ===== -->
     <section id="view-setup" class="view">
       <div class="setup-hero">
         <h2>Read To Me</h2>
@@ -29,41 +29,30 @@
       <div class="form-group">
         <label class="form-label" for="setup-api-key">Google Cloud API Key</label>
         <input type="password" id="setup-api-key" class="form-input"
-               placeholder="Enter your API key"
-               autocomplete="off">
+               placeholder="Enter your API key" autocomplete="off">
       </div>
 
-      <p style="font-size: 0.75rem; color: var(--text-secondary);">
-        Your API key is stored locally on this device and only sent to Google's TTS API.
+      <p class="setup-note">
+        Your key is stored locally and only sent to Google's TTS API.
         <a href="https://console.cloud.google.com/apis/credentials"
-           target="_blank" rel="noopener"
-           style="color: var(--accent);">Get an API key</a>
+           target="_blank" rel="noopener">Get an API key</a>
       </p>
 
-      <button id="btn-setup-save" class="btn btn-primary">
-        Save &amp; Start
-      </button>
+      <button id="btn-setup-save" class="btn btn-primary">Save &amp; Start</button>
     </section>
 
-    <!-- ==================== MAIN VIEW ==================== -->
+    <!-- ===== MAIN VIEW ===== -->
     <section id="view-main" class="view">
       <header class="header">
         <h1>Read To Me</h1>
-        <div class="header-actions">
-          <button id="btn-settings" class="btn-icon" title="Settings" aria-label="Settings">
-            &#9881;
-          </button>
-        </div>
+        <button id="btn-settings" class="btn-icon" title="Settings" aria-label="Settings">&#9881;</button>
       </header>
 
-      <!-- Text Input -->
       <div class="form-group">
-        <textarea id="text-input" class="form-textarea"
-                  placeholder="Paste your text here..."></textarea>
+        <textarea id="text-input" class="form-textarea" placeholder="Paste your text here..."></textarea>
       </div>
 
-      <!-- Voice Selection -->
-      <div class="row">
+      <div class="voice-row">
         <div class="form-group">
           <label class="form-label" for="lang-filter">Language</label>
           <select id="lang-filter" class="form-select"></select>
@@ -74,19 +63,17 @@
         </div>
       </div>
 
-      <!-- Speed Control -->
       <div class="form-group">
         <label class="form-label">Speed</label>
         <div class="speed-control">
-          <span class="speed-value" style="color: var(--text-secondary)">0.5x</span>
+          <span class="speed-value">0.5x</span>
           <input type="range" id="speed-control" class="speed-slider"
                  min="0.5" max="2.0" step="0.1" value="1.0">
-          <span id="speed-display" class="speed-value">1.0x</span>
-          <span class="speed-value" style="color: var(--text-secondary)">2.0x</span>
+          <span id="speed-display" class="speed-value current">1.0x</span>
+          <span class="speed-value">2.0x</span>
         </div>
       </div>
 
-      <!-- Playback Controls -->
       <div class="controls">
         <button id="btn-play" class="btn btn-play">&#9654; Play</button>
         <button id="btn-pause" class="btn btn-secondary" hidden>&#10074;&#10074; Pause</button>
@@ -94,7 +81,6 @@
         <button id="btn-stop" class="btn btn-secondary" hidden>&#9632; Stop</button>
       </div>
 
-      <!-- Progress -->
       <div id="progress-container" class="progress-bar" hidden>
         <div class="progress-track">
           <div id="progress-fill" class="progress-fill"></div>
@@ -103,23 +89,18 @@
       </div>
     </section>
 
-    <!-- ==================== SETTINGS VIEW ==================== -->
+    <!-- ===== SETTINGS VIEW ===== -->
     <section id="view-settings" class="view">
       <header class="header">
         <h1>Settings</h1>
-        <div class="header-actions">
-          <button id="btn-back" class="btn-icon" title="Back" aria-label="Back">
-            &#8592;
-          </button>
-        </div>
+        <button id="btn-back" class="btn-icon" title="Back" aria-label="Back">&#8592;</button>
       </header>
 
       <div class="settings-section">
         <div class="form-group">
           <label class="form-label" for="settings-api-key">API Key</label>
           <input type="password" id="settings-api-key" class="form-input"
-                 placeholder="Google Cloud API key"
-                 autocomplete="off">
+                 placeholder="Google Cloud API key" autocomplete="off">
         </div>
       </div>
 
@@ -128,7 +109,7 @@
           <label class="form-label" for="settings-lang">Default Language</label>
           <select id="settings-lang" class="form-select"></select>
         </div>
-        <div class="form-group" style="margin-top: 12px;">
+        <div class="form-group">
           <label class="form-label" for="settings-voice">Default Voice</label>
           <select id="settings-voice" class="form-select"></select>
         </div>
@@ -138,38 +119,31 @@
         <div class="form-group">
           <label class="form-label">Default Speed</label>
           <div class="speed-control">
-            <span class="speed-value" style="color: var(--text-secondary)">0.5x</span>
+            <span class="speed-value">0.5x</span>
             <input type="range" id="settings-speed" class="speed-slider"
                    min="0.5" max="2.0" step="0.1" value="1.0">
-            <span id="settings-speed-display" class="speed-value">1.0x</span>
-            <span class="speed-value" style="color: var(--text-secondary)">2.0x</span>
+            <span id="settings-speed-display" class="speed-value current">1.0x</span>
+            <span class="speed-value">2.0x</span>
           </div>
         </div>
       </div>
 
-      <button id="btn-save-settings" class="btn btn-primary" style="margin-top: 16px;">
-        Save Settings
-      </button>
-
-      <button id="btn-clear-settings" class="btn btn-danger" style="margin-top: 8px;">
-        Clear All Data
-      </button>
+      <div class="settings-actions">
+        <button id="btn-save-settings" class="btn btn-primary">Save Settings</button>
+        <button id="btn-clear-settings" class="btn btn-danger">Clear All Data</button>
+      </div>
     </section>
 
   </div>
 
-  <!-- Hidden audio element -->
   <audio id="audio-el" preload="none"></audio>
 
-  <!-- Scripts (order matters: dependencies first) -->
   <script src="./js/settings.js"></script>
   <script src="./js/api.js"></script>
   <script src="./js/chunker.js"></script>
   <script src="./js/media-session.js"></script>
   <script src="./js/player.js"></script>
   <script src="./js/app.js"></script>
-
-  <!-- Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
