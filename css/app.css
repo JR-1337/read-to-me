@@ -418,6 +418,54 @@ body {
   padding-top: 8px;
 }
 
+/* ─── Reader View (word highlighting) ─── */
+
+.text-container {
+  position: relative;
+}
+
+.reader-view {
+  width: 100%;
+  min-height: 150px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.reader-view .chunk {
+  transition: color 200ms ease;
+}
+
+.reader-view .chunk.active {
+  color: var(--text);
+  background: rgba(77, 101, 255, 0.08);
+  border-radius: 4px;
+  padding: 2px 0;
+}
+
+.reader-view .word {
+  transition: background 150ms ease, color 150ms ease;
+  border-radius: 3px;
+  padding: 1px 2px;
+  margin: 0 -2px;
+}
+
+.reader-view .word.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(77, 101, 255, 0.4);
+}
+
 /* ─── Hidden ─── */
 
 [hidden] {

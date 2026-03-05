@@ -16,6 +16,7 @@
     // Main
     btnSettings: $('btn-settings'),
     textInput: $('text-input'),
+    readerView: $('reader-view'),
     langFilter: $('lang-filter'),
     voiceSelect: $('voice-select'),
     speedControl: $('speed-control'),
@@ -42,6 +43,11 @@
   let voicesCache = [];
   let errorTimeout = null;
 
+  // Reader view state
+  let activeChunkEl = null;
+  let activeWordEl = null;
+  let chunkElements = [];
+
   // ─── View Management ───
 
   function showView(name) {
@@ -65,6 +71,93 @@
     if (errorTimeout) clearTimeout(errorTimeout);
   }
 
+  // ─── Reader View ───
+
+  function buildReaderView(fullText, chunks) {
+    els.readerView.innerHTML = '';
+    chunkElements = [];
+
+    // Map each chunk to a span with word spans inside
+    for (let i = 0; i < chunks.length; i++) {
+      const chunkSpan = document.createElement('span');
+      chunkSpan.className = 'chunk';
+      chunkSpan.dataset.index = i;
+
+      // Split into words and whitespace, wrap each word
+      const tokens = chunks[i].split(/(\s+)/);
+      for (const token of tokens) {
+        if (token.trim().length === 0) {
+          // Whitespace — add as text node
+          chunkSpan.appendChild(document.createTextNode(token));
+        } else {
+          const wordSpan = document.createElement('span');
+          wordSpan.className = 'word';
+          wordSpan.textContent = token;
+          chunkSpan.appendChild(wordSpan);
+        }
+      }
+
+      els.readerView.appendChild(chunkSpan);
+      chunkElements.push(chunkSpan);
+
+      // Add space between chunks
+      if (i < chunks.length - 1) {
+        els.readerView.appendChild(document.createTextNode(' '));
+      }
+    }
+  }
+
+  function showReaderView() {
+    els.textInput.hidden = true;
+    els.readerView.hidden = false;
+  }
+
+  function hideReaderView() {
+    els.textInput.hidden = false;
+    els.readerView.hidden = true;
+    activeChunkEl = null;
+    activeWordEl = null;
+  }
+
+  function highlightChunk(chunkIndex) {
+    // Remove previous chunk highlight
+    if (activeChunkEl) {
+      activeChunkEl.classList.remove('active');
+    }
+    if (activeWordEl) {
+      activeWordEl.classList.remove('active');
+      activeWordEl = null;
+    }
+
+    // Highlight new chunk
+    if (chunkIndex < chunkElements.length) {
+      activeChunkEl = chunkElements[chunkIndex];
+      activeChunkEl.classList.add('active');
+
+      // Scroll chunk into view
+      activeChunkEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function highlightWord(wordIndex) {
+    if (!activeChunkEl) return;
+
+    // Remove previous word highlight
+    if (activeWordEl) {
+      activeWordEl.classList.remove('active');
+    }
+
+    // Get all word spans in the active chunk
+    const wordSpans = activeChunkEl.querySelectorAll('.word');
+    if (wordIndex < wordSpans.length) {
+      activeWordEl = wordSpans[wordIndex];
+      activeWordEl.classList.add('active');
+
+      // Scroll word into view within the reader
+      activeWordEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
   // ─── Voice Loading ───
 
   async function loadVoices(apiKey) {
@@ -79,7 +172,6 @@
       `<option value="${l}" ${l === savedLang ? 'selected' : ''}>${l}</option>`
     ).join('');
 
-    // If saved lang not in list, select first
     if (savedLang && !langs.includes(savedLang) && langs.length) {
       selectEl.value = langs[0];
     }
@@ -128,7 +220,6 @@
   async function initMain() {
     const settings = Settings.get();
 
-    // Load voices if not cached
     if (voicesCache.length === 0) {
       try {
         await loadVoices(settings.apiKey);
@@ -138,15 +229,12 @@
       }
     }
 
-    // Populate language filter & voice select
     populateLangFilter(voicesCache, els.langFilter, settings.languageCode);
     filterVoices(voicesCache, els.langFilter.value, els.voiceSelect, settings.voiceName);
 
-    // Speed
     els.speedControl.value = settings.speakingRate;
     els.speedDisplay.textContent = settings.speakingRate.toFixed(1) + 'x';
 
-    // Init player
     Player.init(els.audioEl, {
       onProgress: (current, total) => {
         els.progressContainer.hidden = false;
@@ -154,27 +242,41 @@
         els.progressFill.style.width = pct + '%';
         els.progressText.textContent = `${current} / ${total}`;
       },
-      onStateChange: (newState) => {
+      onStateChange: (newState, fullText) => {
         updatePlaybackUI(newState);
+
+        if (newState === 'playing' && fullText) {
+          // First play — build reader view
+          const chunks = Player.getQueue();
+          if (chunks.length > 0) {
+            buildReaderView(fullText, chunks);
+            showReaderView();
+          }
+        } else if (newState === 'stopped') {
+          hideReaderView();
+        }
+      },
+      onChunkStart: (chunkIndex) => {
+        highlightChunk(chunkIndex);
+      },
+      onWordUpdate: (wordIndex) => {
+        highlightWord(wordIndex);
       },
       onError: showError
     });
   }
 
   function wireMainEvents() {
-    // Language filter change
     els.langFilter.addEventListener('change', () => {
       const settings = Settings.get();
       filterVoices(voicesCache, els.langFilter.value, els.voiceSelect, settings.voiceName);
       Settings.set({ languageCode: els.langFilter.value });
     });
 
-    // Voice change
     els.voiceSelect.addEventListener('change', () => {
       Settings.set({ voiceName: els.voiceSelect.value });
     });
 
-    // Speed slider
     els.speedControl.addEventListener('input', () => {
       const val = parseFloat(els.speedControl.value);
       els.speedDisplay.textContent = val.toFixed(1) + 'x';
@@ -193,7 +295,6 @@
       }
       hideError();
 
-      // If there's a cursor position or selection, start from there
       const start = els.textInput.selectionStart;
       const text = start > 0 ? els.textInput.value.slice(start).trim() : fullText;
 
@@ -211,16 +312,10 @@
       });
     });
 
-    // Pause
     els.btnPause.addEventListener('click', () => Player.pause());
-
-    // Resume
     els.btnResume.addEventListener('click', () => Player.resume());
-
-    // Stop
     els.btnStop.addEventListener('click', () => Player.stop());
 
-    // Settings button
     els.btnSettings.addEventListener('click', () => {
       openSettings();
       showView('settings');
@@ -260,7 +355,6 @@
     els.settingsSpeed.value = settings.speakingRate;
     els.settingsSpeedDisplay.textContent = settings.speakingRate.toFixed(1) + 'x';
 
-    // Populate settings voice selectors
     if (voicesCache.length > 0) {
       populateLangFilter(voicesCache, els.settingsLang, settings.languageCode);
       filterVoices(voicesCache, els.settingsLang.value, els.settingsVoice, settings.voiceName);
@@ -288,7 +382,6 @@
       els.btnSaveSettings.disabled = true;
 
       try {
-        // Re-validate API key if changed
         const currentSettings = Settings.get();
         if (apiKey !== currentSettings.apiKey) {
           voicesCache = [];
@@ -303,7 +396,6 @@
           speakingRate: parseFloat(els.settingsSpeed.value)
         });
 
-        // Sync main view
         populateLangFilter(voicesCache, els.langFilter, els.settingsLang.value);
         filterVoices(voicesCache, els.settingsLang.value, els.voiceSelect, els.settingsVoice.value);
         els.speedControl.value = els.settingsSpeed.value;

@@ -11,22 +11,32 @@ const Player = (() => {
     config: null
   };
 
+  // Word timing for current chunk
+  let chunkWords = [];
+  let wordTimings = []; // cumulative end-time for each word
+  let currentWordIndex = -1;
+
   // Callbacks set by app.js
   let onProgress = null;
   let onStateChange = null;
   let onError = null;
+  let onChunkStart = null;
+  let onWordUpdate = null;
 
   function init(audioElement, callbacks = {}) {
     audioEl = audioElement;
     onProgress = callbacks.onProgress || (() => {});
     onStateChange = callbacks.onStateChange || (() => {});
     onError = callbacks.onError || (() => {});
+    onChunkStart = callbacks.onChunkStart || (() => {});
+    onWordUpdate = callbacks.onWordUpdate || (() => {});
 
     audioEl.addEventListener('ended', handleEnded);
     audioEl.addEventListener('error', () => {
       onError('Audio playback error');
       stop();
     });
+    audioEl.addEventListener('timeupdate', handleTimeUpdate);
   }
 
   function play(text, config) {
@@ -54,7 +64,7 @@ const Player = (() => {
     });
     MediaSessionManager.updateState('playing');
 
-    onStateChange('playing');
+    onStateChange('playing', text);
     synthesizeAndPlay(0);
   }
 
@@ -69,6 +79,13 @@ const Player = (() => {
     state.currentIndex = index;
     onProgress(index + 1, state.queue.length);
 
+    // Prepare word timing for this chunk
+    chunkWords = state.queue[index].split(/(\s+)/); // preserve whitespace tokens
+    currentWordIndex = -1;
+
+    // Notify app of new chunk
+    onChunkStart(index, state.queue[index]);
+
     try {
       const base64 = await Api.synthesizeChunk(
         state.config.apiKey,
@@ -78,12 +95,10 @@ const Player = (() => {
         state.config.speakingRate
       );
 
-      // Don't play if stopped during synthesis
       if (!state.isPlaying) return;
 
       const blobUrl = base64ToBlobUrl(base64);
 
-      // Revoke previous blob URL
       if (previousBlobUrl) {
         URL.revokeObjectURL(previousBlobUrl);
       }
@@ -91,10 +106,51 @@ const Player = (() => {
 
       audioEl.src = blobUrl;
       audioEl.playbackRate = 1.0;
+
+      // Wait for duration to be available before building timings
+      audioEl.addEventListener('loadedmetadata', buildWordTimings, { once: true });
+
       await audioEl.play();
     } catch (err) {
       onError(err.message);
       stop();
+    }
+  }
+
+  function buildWordTimings() {
+    const duration = audioEl.duration;
+    if (!duration || !isFinite(duration)) return;
+
+    // Get only actual words (not whitespace tokens)
+    const actualWords = chunkWords.filter((w) => w.trim().length > 0);
+    const totalChars = actualWords.reduce((sum, w) => sum + w.length, 0);
+
+    // Build cumulative timings proportional to word length
+    wordTimings = [];
+    let cumulative = 0;
+    for (const word of actualWords) {
+      cumulative += (word.length / totalChars) * duration;
+      wordTimings.push(cumulative);
+    }
+  }
+
+  function handleTimeUpdate() {
+    if (!state.isPlaying || wordTimings.length === 0) return;
+
+    const currentTime = audioEl.currentTime;
+    let newWordIndex = 0;
+
+    for (let i = 0; i < wordTimings.length; i++) {
+      if (currentTime < wordTimings[i]) {
+        newWordIndex = i;
+        break;
+      }
+      newWordIndex = i;
+    }
+
+    if (newWordIndex !== currentWordIndex) {
+      currentWordIndex = newWordIndex;
+      onWordUpdate(currentWordIndex);
     }
   }
 
@@ -112,6 +168,9 @@ const Player = (() => {
   function onComplete() {
     state.isPlaying = false;
     state.isPaused = false;
+    chunkWords = [];
+    wordTimings = [];
+    currentWordIndex = -1;
     if (previousBlobUrl) {
       URL.revokeObjectURL(previousBlobUrl);
       previousBlobUrl = null;
@@ -145,6 +204,9 @@ const Player = (() => {
     state.isPaused = false;
     state.queue = [];
     state.currentIndex = 0;
+    chunkWords = [];
+    wordTimings = [];
+    currentWordIndex = -1;
 
     if (previousBlobUrl) {
       URL.revokeObjectURL(previousBlobUrl);
@@ -181,5 +243,9 @@ const Player = (() => {
     return 'playing';
   }
 
-  return { init, play, pause, resume, stop, getState };
+  function getQueue() {
+    return state.queue;
+  }
+
+  return { init, play, pause, resume, stop, getState, getQueue };
 })();
