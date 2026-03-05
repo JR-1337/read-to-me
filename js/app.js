@@ -15,6 +15,7 @@
     btnSetupSave: $('btn-setup-save'),
     // Main
     btnSettings: $('btn-settings'),
+    btnExpand: $('btn-expand'),
     textInput: $('text-input'),
     readerView: $('reader-view'),
     langFilter: $('lang-filter'),
@@ -319,6 +320,19 @@
     els.btnSettings.addEventListener('click', () => {
       openSettings();
       showView('settings');
+    });
+
+    // Expand/collapse toggle
+    els.btnExpand.addEventListener('click', () => {
+      const isExpanded = els.textInput.classList.toggle('expanded');
+      els.readerView.classList.toggle('expanded', isExpanded);
+      els.btnExpand.textContent = isExpanded ? '\u2195' : '\u2195';
+      els.btnExpand.title = isExpanded ? 'Collapse text area' : 'Expand text area';
+
+      if (isExpanded) {
+        // Scroll to textarea so it fills the view
+        els.textInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     });
   }
 

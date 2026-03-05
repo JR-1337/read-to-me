@@ -418,6 +418,45 @@ body {
   padding-top: 8px;
 }
 
+/* ─── Expand Toggle ─── */
+
+.btn-expand {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  opacity: 0.7;
+}
+
+.btn-expand:hover,
+.btn-expand:active {
+  opacity: 1;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Expanded mode: textarea/reader fills the viewport */
+.form-textarea.expanded,
+.reader-view.expanded {
+  min-height: calc(100vh - 120px);
+  min-height: calc(100dvh - 120px);
+  max-height: none;
+}
+
 /* ─── Reader View (word highlighting) ─── */
 
 .text-container {
