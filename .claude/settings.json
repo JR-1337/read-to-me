@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/johnrichmond007/APPS/**)",
+      "Bash(gh repo create read-to-me --private --source=. --description \"Personal text-to-speech PWA using Google Cloud TTS\")",
+      "Bash(git commit:*)",
+      "Bash(gh api repos/JR-1337/read-to-me/pages -X POST -f \"build_type=workflow\" -f \"source[branch]=main\" -f \"source[path]=/\")",
+      "Bash(gh api:*)",
+      "Bash(gh repo edit JR-1337/read-to-me --visibility public)",
+      "Bash(gh repo edit JR-1337/read-to-me --visibility public --accept-visibility-change-consequences)"
+    ]
+  }
+}

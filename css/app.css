@@ -418,35 +418,44 @@ body {
   padding-top: 8px;
 }
 
-/* ─── Expand Toggle ─── */
+/* ─── Text Toolbar ─── */
 
-.btn-expand {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 2;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  background: var(--surface-hover);
+.text-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.btn-tool {
+  padding: 6px 12px;
+  background: var(--surface);
   color: var(--text-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 1.1rem;
+  font-family: inherit;
+  font-size: 0.75rem;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transition: all var(--transition);
   -webkit-tap-highlight-color: transparent;
-  opacity: 0.7;
+  white-space: nowrap;
 }
 
-.btn-expand:hover,
-.btn-expand:active {
-  opacity: 1;
+.btn-tool:hover,
+.btn-tool:active {
   color: var(--accent);
   border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.text-stats {
+  flex: 1;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Expanded mode: textarea/reader fills the viewport */
@@ -503,6 +512,48 @@ body {
   background: var(--accent);
   color: #fff;
   box-shadow: 0 2px 8px rgba(77, 101, 255, 0.4);
+}
+
+/* ─── History ─── */
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.history-item:hover,
+.history-item:active {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.history-item-text {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-item-date {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 /* ─── Hidden ─── */

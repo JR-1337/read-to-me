@@ -51,6 +51,7 @@ const Player = (() => {
     state.isPlaying = true;
     state.isPaused = false;
     state.config = config;
+    audioChunksBase64 = [];
 
     // iOS audio unlock
     unlockAudio();
@@ -92,11 +93,13 @@ const Player = (() => {
         state.queue[index],
         state.config.voiceName,
         state.config.languageCode,
-        state.config.speakingRate
+        state.config.speakingRate,
+        state.config.pitch
       );
 
       if (!state.isPlaying) return;
 
+      audioChunksBase64.push(base64);
       const blobUrl = base64ToBlobUrl(base64);
 
       if (previousBlobUrl) {
@@ -247,5 +250,12 @@ const Player = (() => {
     return state.queue;
   }
 
-  return { init, play, pause, resume, stop, getState, getQueue };
+  // Collect base64 chunks for download
+  let audioChunksBase64 = [];
+
+  function getAudioChunks() {
+    return audioChunksBase64;
+  }
+
+  return { init, play, pause, resume, stop, getState, getQueue, getAudioChunks };
 })();

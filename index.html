@@ -45,15 +45,24 @@
     <section id="view-main" class="view">
       <header class="header">
         <h1>Read To Me</h1>
-        <button id="btn-settings" class="btn-icon" title="Settings" aria-label="Settings">&#9881;</button>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-history" class="btn-icon" title="History" aria-label="History">&#128337;</button>
+          <button id="btn-settings" class="btn-icon" title="Settings" aria-label="Settings">&#9881;</button>
+        </div>
       </header>
 
+      <!-- Text area + toolbar -->
       <div class="form-group text-container">
-        <button id="btn-expand" class="btn-expand" title="Expand text area" aria-label="Expand text area">&#8597;</button>
+        <div class="text-toolbar">
+          <button id="btn-paste" class="btn-tool" title="Paste from clipboard">&#128203; Paste</button>
+          <span id="text-stats" class="text-stats"></span>
+          <button id="btn-expand" class="btn-tool" title="Expand text area">&#8597;</button>
+        </div>
         <textarea id="text-input" class="form-textarea" placeholder="Paste your text here..."></textarea>
         <div id="reader-view" class="reader-view" hidden></div>
       </div>
 
+      <!-- Voice Selection -->
       <div class="voice-row">
         <div class="form-group">
           <label class="form-label" for="lang-filter">Language</label>
@@ -65,6 +74,7 @@
         </div>
       </div>
 
+      <!-- Speed Control -->
       <div class="form-group">
         <label class="form-label">Speed</label>
         <div class="speed-control">
@@ -76,6 +86,19 @@
         </div>
       </div>
 
+      <!-- Pitch Control -->
+      <div class="form-group">
+        <label class="form-label">Pitch</label>
+        <div class="speed-control">
+          <span class="speed-value">-20</span>
+          <input type="range" id="pitch-control" class="speed-slider"
+                 min="-20" max="20" step="1" value="0">
+          <span id="pitch-display" class="speed-value current">0</span>
+          <span class="speed-value">+20</span>
+        </div>
+      </div>
+
+      <!-- Playback Controls -->
       <div class="controls">
         <button id="btn-play" class="btn btn-play">&#9654; Play</button>
         <button id="btn-pause" class="btn btn-secondary" hidden>&#10074;&#10074; Pause</button>
@@ -83,11 +106,26 @@
         <button id="btn-stop" class="btn btn-secondary" hidden>&#9632; Stop</button>
       </div>
 
+      <!-- Download -->
+      <button id="btn-download" class="btn btn-secondary" hidden>&#11015; Download MP3</button>
+
+      <!-- Progress -->
       <div id="progress-container" class="progress-bar" hidden>
         <div class="progress-track">
           <div id="progress-fill" class="progress-fill"></div>
         </div>
         <span id="progress-text" class="progress-text">0 / 0</span>
+      </div>
+    </section>
+
+    <!-- ===== HISTORY VIEW ===== -->
+    <section id="view-history" class="view">
+      <header class="header">
+        <h1>History</h1>
+        <button id="btn-history-back" class="btn-icon" title="Back" aria-label="Back">&#8592;</button>
+      </header>
+      <div id="history-list" class="history-list">
+        <p class="text-stats" style="text-align:center;padding:32px 0;">No history yet</p>
       </div>
     </section>
 
@@ -126,6 +164,19 @@
                    min="0.5" max="2.0" step="0.1" value="1.0">
             <span id="settings-speed-display" class="speed-value current">1.0x</span>
             <span class="speed-value">2.0x</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="form-group">
+          <label class="form-label">Default Pitch</label>
+          <div class="speed-control">
+            <span class="speed-value">-20</span>
+            <input type="range" id="settings-pitch" class="speed-slider"
+                   min="-20" max="20" step="1" value="0">
+            <span id="settings-pitch-display" class="speed-value current">0</span>
+            <span class="speed-value">+20</span>
           </div>
         </div>
       </div>
