@@ -77,6 +77,11 @@ body {
   padding: 4px 0 12px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .header h1 {
   font-size: 1.2rem;
   font-weight: 700;
@@ -554,6 +559,13 @@ body {
   font-size: 0.65rem;
   color: var(--text-secondary);
   white-space: nowrap;
+}
+
+.history-empty {
+  text-align: center;
+  padding: 32px 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
 /* ─── Hidden ─── */

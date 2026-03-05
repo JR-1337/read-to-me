@@ -1,5 +1,8 @@
 const Settings = (() => {
   const STORAGE_KEY = 'rtm_settings';
+  const HISTORY_KEY = 'rtm_history';
+  const MAX_HISTORY = 10;
+  const MAX_HISTORY_TEXT_LEN = 50000; // ~50KB per item cap
 
   const DEFAULTS = {
     apiKey: '',
@@ -9,32 +12,6 @@ const Settings = (() => {
     pitch: 0,
     setupComplete: false
   };
-
-  const HISTORY_KEY = 'rtm_history';
-  const MAX_HISTORY = 10;
-
-  function getHistory() {
-    try {
-      return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    } catch {
-      return [];
-    }
-  }
-
-  function addHistory(text) {
-    if (!text || text.length < 10) return;
-    const preview = text.slice(0, 100).trim();
-    let history = getHistory();
-    // Remove duplicate if exists
-    history = history.filter((h) => h.preview !== preview);
-    history.unshift({ preview, text, date: Date.now() });
-    if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-  }
-
-  function clearHistory() {
-    localStorage.removeItem(HISTORY_KEY);
-  }
 
   function get() {
     try {
@@ -53,11 +30,41 @@ const Settings = (() => {
   }
 
   function isSetupComplete() {
-    return get().setupComplete === true && get().apiKey !== '';
+    const s = get();
+    return s.setupComplete === true && s.apiKey !== '';
   }
 
   function clear() {
     localStorage.removeItem(STORAGE_KEY);
+  }
+
+  // ─── History ───
+
+  function getHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  function addHistory(text) {
+    if (!text || text.length < 10) return;
+    try {
+      const preview = text.slice(0, 100).trim();
+      const stored = text.length > MAX_HISTORY_TEXT_LEN ? text.slice(0, MAX_HISTORY_TEXT_LEN) : text;
+      let history = getHistory();
+      history = history.filter((h) => h.preview !== preview);
+      history.unshift({ preview, text: stored, date: Date.now() });
+      if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch {
+      // QuotaExceededError or other — silently ignore
+    }
+  }
+
+  function clearHistory() {
+    localStorage.removeItem(HISTORY_KEY);
   }
 
   return { get, set, isSetupComplete, clear, getHistory, addHistory, clearHistory };

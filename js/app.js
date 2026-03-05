@@ -58,7 +58,56 @@
   // Reader view state
   let activeChunkEl = null;
   let activeWordEl = null;
+  let activeWordSpans = null; // cached querySelectorAll for current chunk
   let chunkElements = [];
+
+  // Reusable DOM node for escaping HTML
+  const escapeDiv = document.createElement('div');
+
+  // ─── Utilities ───
+
+  function escapeHtml(str) {
+    escapeDiv.textContent = str;
+    return escapeDiv.innerHTML;
+  }
+
+  function formatSpeed(val) {
+    return parseFloat(val).toFixed(1) + 'x';
+  }
+
+  function formatPitch(val) {
+    return String(parseInt(val));
+  }
+
+  // Wire a range slider: update display on input, optionally persist on change
+  function wireSlider(sliderEl, displayEl, formatter, settingsKey) {
+    sliderEl.addEventListener('input', () => {
+      displayEl.textContent = formatter(sliderEl.value);
+    });
+    if (settingsKey) {
+      sliderEl.addEventListener('change', () => {
+        Settings.set({ [settingsKey]: parseFloat(sliderEl.value) });
+      });
+    }
+  }
+
+  // Debounce helper
+  let statsTimeout = null;
+  function updateTextStats() {
+    clearTimeout(statsTimeout);
+    statsTimeout = setTimeout(() => {
+      const text = els.textInput.value;
+      if (!text) {
+        els.textStats.textContent = '';
+        return;
+      }
+      const chars = text.length;
+      const words = text.trim().split(/\s+/).filter(Boolean).length;
+      const costCents = (chars / 1_000_000) * 1600;
+      const costStr = costCents < 1 ? '<1\u00A2' : costCents.toFixed(1) + '\u00A2';
+      els.textStats.textContent = `${words} words \u00B7 ${chars} chars \u00B7 ~${costStr}`;
+    }, 80);
+  }
 
   // ─── View Management ───
 
@@ -83,26 +132,10 @@
     if (errorTimeout) clearTimeout(errorTimeout);
   }
 
-  // ─── Text Stats ───
-
-  function updateTextStats() {
-    const text = els.textInput.value;
-    if (!text) {
-      els.textStats.textContent = '';
-      return;
-    }
-    const chars = text.length;
-    const words = text.trim().split(/\s+/).filter(Boolean).length;
-    // Cost estimate: $16 per 1M chars for Neural2/WaveNet (free first 1M)
-    const costCents = (chars / 1_000_000) * 1600;
-    const costStr = costCents < 1 ? '<1\u00A2' : costCents.toFixed(1) + '\u00A2';
-    els.textStats.textContent = `${words} words \u00B7 ${chars} chars \u00B7 ~${costStr}`;
-  }
-
   // ─── Reader View ───
 
-  function buildReaderView(fullText, chunks) {
-    els.readerView.innerHTML = '';
+  function buildReaderView(chunks) {
+    const frag = document.createDocumentFragment();
     chunkElements = [];
 
     for (let i = 0; i < chunks.length; i++) {
@@ -122,13 +155,16 @@
         }
       }
 
-      els.readerView.appendChild(chunkSpan);
+      frag.appendChild(chunkSpan);
       chunkElements.push(chunkSpan);
 
       if (i < chunks.length - 1) {
-        els.readerView.appendChild(document.createTextNode(' '));
+        frag.appendChild(document.createTextNode(' '));
       }
     }
+
+    els.readerView.innerHTML = '';
+    els.readerView.appendChild(frag);
   }
 
   function showReaderView() {
@@ -141,6 +177,7 @@
     els.readerView.hidden = true;
     activeChunkEl = null;
     activeWordEl = null;
+    activeWordSpans = null;
   }
 
   function highlightChunk(chunkIndex) {
@@ -149,19 +186,22 @@
       activeWordEl.classList.remove('active');
       activeWordEl = null;
     }
+    activeWordSpans = null;
+
     if (chunkIndex < chunkElements.length) {
       activeChunkEl = chunkElements[chunkIndex];
       activeChunkEl.classList.add('active');
+      // Cache word spans for this chunk — avoids querySelectorAll on every timeupdate
+      activeWordSpans = activeChunkEl.querySelectorAll('.word');
       activeChunkEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }
 
   function highlightWord(wordIndex) {
-    if (!activeChunkEl) return;
+    if (!activeWordSpans) return;
     if (activeWordEl) activeWordEl.classList.remove('active');
-    const wordSpans = activeChunkEl.querySelectorAll('.word');
-    if (wordIndex < wordSpans.length) {
-      activeWordEl = wordSpans[wordIndex];
+    if (wordIndex < activeWordSpans.length) {
+      activeWordEl = activeWordSpans[wordIndex];
       activeWordEl.classList.add('active');
       activeWordEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -170,24 +210,12 @@
   // ─── Download MP3 ───
 
   function downloadAudio() {
-    const chunks = Player.getAudioChunks();
-    if (chunks.length === 0) {
+    const blob = Player.buildDownloadBlob();
+    if (!blob) {
       showError('No audio to download — play some text first');
       return;
     }
 
-    // Combine all base64 chunks into a single blob
-    const byteArrays = chunks.map((b64) => {
-      const binary = atob(b64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      return bytes;
-    });
-    const blob = new Blob(byteArrays, { type: 'audio/mpeg' });
-
-    // Prompt for filename
     const preview = els.textInput.value.trim().slice(0, 40).replace(/[^a-zA-Z0-9 ]/g, '').trim();
     const defaultName = (preview || 'read-to-me') + '.mp3';
     const filename = prompt('Save as:', defaultName);
@@ -201,12 +229,12 @@
     URL.revokeObjectURL(url);
   }
 
-  // ─── History ───
+  // ─── History (event delegation) ───
 
   function renderHistory() {
     const history = Settings.getHistory();
     if (history.length === 0) {
-      els.historyList.innerHTML = '<p class="text-stats" style="text-align:center;padding:32px 0;">No history yet</p>';
+      els.historyList.innerHTML = '<p class="history-empty">No history yet</p>';
       return;
     }
 
@@ -218,33 +246,27 @@
         <span class="history-item-date">${dateStr}</span>
       </div>`;
     }).join('');
-
-    // Wire click handlers
-    els.historyList.querySelectorAll('.history-item').forEach((el) => {
-      el.addEventListener('click', () => {
-        const idx = parseInt(el.dataset.index);
-        const item = history[idx];
-        if (item) {
-          els.textInput.value = item.text;
-          updateTextStats();
-          showView('main');
-        }
-      });
-    });
   }
 
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+  function wireHistoryDelegation() {
+    els.historyList.addEventListener('click', (e) => {
+      const item = e.target.closest('.history-item');
+      if (!item) return;
+      const idx = parseInt(item.dataset.index);
+      const history = Settings.getHistory();
+      if (history[idx]) {
+        els.textInput.value = history[idx].text;
+        updateTextStats();
+        showView('main');
+      }
+    });
   }
 
   // ─── Voice Loading ───
 
   async function loadVoices(apiKey) {
-    const voices = await Api.listVoices(apiKey);
-    voicesCache = voices;
-    return voices;
+    voicesCache = await Api.listVoices(apiKey);
+    return voicesCache;
   }
 
   function populateLangFilter(voices, selectEl, savedLang) {
@@ -297,25 +319,27 @@
 
   // ─── Main View ───
 
-  async function initMain() {
+  function syncMainControls() {
     const settings = Settings.get();
+    populateLangFilter(voicesCache, els.langFilter, settings.languageCode);
+    filterVoices(voicesCache, els.langFilter.value, els.voiceSelect, settings.voiceName);
+    els.speedControl.value = settings.speakingRate;
+    els.speedDisplay.textContent = formatSpeed(settings.speakingRate);
+    els.pitchControl.value = settings.pitch || 0;
+    els.pitchDisplay.textContent = formatPitch(settings.pitch || 0);
+  }
 
+  async function initMain() {
     if (voicesCache.length === 0) {
       try {
-        await loadVoices(settings.apiKey);
+        await loadVoices(Settings.get().apiKey);
       } catch (err) {
         showError('Could not load voices: ' + err.message);
         return;
       }
     }
 
-    populateLangFilter(voicesCache, els.langFilter, settings.languageCode);
-    filterVoices(voicesCache, els.langFilter.value, els.voiceSelect, settings.voiceName);
-
-    els.speedControl.value = settings.speakingRate;
-    els.speedDisplay.textContent = settings.speakingRate.toFixed(1) + 'x';
-    els.pitchControl.value = settings.pitch || 0;
-    els.pitchDisplay.textContent = settings.pitch || '0';
+    syncMainControls();
 
     Player.init(els.audioEl, {
       onProgress: (current, total) => {
@@ -330,30 +354,35 @@
         if (newState === 'playing' && fullText) {
           const chunks = Player.getQueue();
           if (chunks.length > 0) {
-            buildReaderView(fullText, chunks);
+            buildReaderView(chunks);
             showReaderView();
           }
         } else if (newState === 'stopped') {
           hideReaderView();
-          // Show download if we have audio
           els.btnDownload.hidden = Player.getAudioChunks().length === 0;
         }
       },
-      onChunkStart: (chunkIndex) => {
-        highlightChunk(chunkIndex);
-      },
-      onWordUpdate: (wordIndex) => {
-        highlightWord(wordIndex);
-      },
+      onChunkStart: highlightChunk,
+      onWordUpdate: highlightWord,
       onError: showError
     });
   }
 
+  function buildPlayConfig() {
+    const settings = Settings.get();
+    return {
+      apiKey: settings.apiKey,
+      voiceName: els.voiceSelect.value,
+      languageCode: els.langFilter.value,
+      speakingRate: parseFloat(els.speedControl.value),
+      pitch: parseInt(els.pitchControl.value)
+    };
+  }
+
   function wireMainEvents() {
-    // Text stats on input
     els.textInput.addEventListener('input', updateTextStats);
 
-    // Auto-paste from clipboard
+    // Clipboard paste
     els.btnPaste.addEventListener('click', async () => {
       try {
         const text = await navigator.clipboard.readText();
@@ -366,32 +395,18 @@
       }
     });
 
-    // Language filter
+    // Voice selectors
     els.langFilter.addEventListener('change', () => {
-      const settings = Settings.get();
-      filterVoices(voicesCache, els.langFilter.value, els.voiceSelect, settings.voiceName);
+      filterVoices(voicesCache, els.langFilter.value, els.voiceSelect, Settings.get().voiceName);
       Settings.set({ languageCode: els.langFilter.value });
     });
-
     els.voiceSelect.addEventListener('change', () => {
       Settings.set({ voiceName: els.voiceSelect.value });
     });
 
-    // Speed
-    els.speedControl.addEventListener('input', () => {
-      els.speedDisplay.textContent = parseFloat(els.speedControl.value).toFixed(1) + 'x';
-    });
-    els.speedControl.addEventListener('change', () => {
-      Settings.set({ speakingRate: parseFloat(els.speedControl.value) });
-    });
-
-    // Pitch
-    els.pitchControl.addEventListener('input', () => {
-      els.pitchDisplay.textContent = parseInt(els.pitchControl.value);
-    });
-    els.pitchControl.addEventListener('change', () => {
-      Settings.set({ pitch: parseInt(els.pitchControl.value) });
-    });
+    // Sliders (main view: auto-persist on change)
+    wireSlider(els.speedControl, els.speedDisplay, formatSpeed, 'speakingRate');
+    wireSlider(els.pitchControl, els.pitchDisplay, formatPitch, 'pitch');
 
     // Play
     els.btnPlay.addEventListener('click', () => {
@@ -405,41 +420,27 @@
 
       const start = els.textInput.selectionStart;
       const text = start > 0 ? els.textInput.value.slice(start).trim() : fullText;
-
       if (!text) {
         showError('No text after cursor position');
         return;
       }
 
-      // Save to history
       Settings.addHistory(fullText);
-
-      const settings = Settings.get();
-      Player.play(text, {
-        apiKey: settings.apiKey,
-        voiceName: els.voiceSelect.value,
-        languageCode: els.langFilter.value,
-        speakingRate: parseFloat(els.speedControl.value),
-        pitch: parseInt(els.pitchControl.value)
-      });
+      Player.play(text, buildPlayConfig());
     });
 
     els.btnPause.addEventListener('click', () => Player.pause());
     els.btnResume.addEventListener('click', () => Player.resume());
     els.btnStop.addEventListener('click', () => Player.stop());
-
-    // Download
     els.btnDownload.addEventListener('click', downloadAudio);
 
-    // History
+    // History (event delegation — one listener, wired once)
     els.btnHistory.addEventListener('click', () => {
       renderHistory();
       showView('history');
     });
-
-    els.btnHistoryBack.addEventListener('click', () => {
-      showView('main');
-    });
+    els.btnHistoryBack.addEventListener('click', () => showView('main'));
+    wireHistoryDelegation();
 
     // Settings
     els.btnSettings.addEventListener('click', () => {
@@ -447,7 +448,7 @@
       showView('settings');
     });
 
-    // Expand/collapse toggle
+    // Expand/collapse
     els.btnExpand.addEventListener('click', () => {
       const isExpanded = els.textInput.classList.toggle('expanded');
       els.readerView.classList.toggle('expanded', isExpanded);
@@ -458,28 +459,19 @@
   }
 
   function updatePlaybackUI(state) {
-    switch (state) {
-      case 'playing':
-        els.btnPlay.hidden = true;
-        els.btnPause.hidden = false;
-        els.btnResume.hidden = true;
-        els.btnStop.hidden = false;
-        els.btnDownload.hidden = true;
-        break;
-      case 'paused':
-        els.btnPlay.hidden = true;
-        els.btnPause.hidden = true;
-        els.btnResume.hidden = false;
-        els.btnStop.hidden = false;
-        break;
-      case 'stopped':
-        els.btnPlay.hidden = false;
-        els.btnPause.hidden = true;
-        els.btnResume.hidden = true;
-        els.btnStop.hidden = true;
-        els.progressContainer.hidden = true;
-        els.progressFill.style.width = '0%';
-        break;
+    const playing = state === 'playing';
+    const paused = state === 'paused';
+    const stopped = state === 'stopped';
+
+    els.btnPlay.hidden = !stopped;
+    els.btnPause.hidden = !playing;
+    els.btnResume.hidden = !paused;
+    els.btnStop.hidden = stopped;
+    els.btnDownload.hidden = playing || paused || els.btnDownload.hidden;
+
+    if (stopped) {
+      els.progressContainer.hidden = true;
+      els.progressFill.style.width = '0%';
     }
   }
 
@@ -489,9 +481,9 @@
     const settings = Settings.get();
     els.settingsApiKey.value = settings.apiKey;
     els.settingsSpeed.value = settings.speakingRate;
-    els.settingsSpeedDisplay.textContent = settings.speakingRate.toFixed(1) + 'x';
+    els.settingsSpeedDisplay.textContent = formatSpeed(settings.speakingRate);
     els.settingsPitch.value = settings.pitch || 0;
-    els.settingsPitchDisplay.textContent = settings.pitch || '0';
+    els.settingsPitchDisplay.textContent = formatPitch(settings.pitch || 0);
 
     if (voicesCache.length > 0) {
       populateLangFilter(voicesCache, els.settingsLang, settings.languageCode);
@@ -501,17 +493,12 @@
 
   function wireSettingsEvents() {
     els.settingsLang.addEventListener('change', () => {
-      const settings = Settings.get();
-      filterVoices(voicesCache, els.settingsLang.value, els.settingsVoice, settings.voiceName);
+      filterVoices(voicesCache, els.settingsLang.value, els.settingsVoice, Settings.get().voiceName);
     });
 
-    els.settingsSpeed.addEventListener('input', () => {
-      els.settingsSpeedDisplay.textContent = parseFloat(els.settingsSpeed.value).toFixed(1) + 'x';
-    });
-
-    els.settingsPitch.addEventListener('input', () => {
-      els.settingsPitchDisplay.textContent = parseInt(els.settingsPitch.value);
-    });
+    // Settings sliders (display only — persisted on Save button)
+    wireSlider(els.settingsSpeed, els.settingsSpeedDisplay, formatSpeed, null);
+    wireSlider(els.settingsPitch, els.settingsPitchDisplay, formatPitch, null);
 
     els.btnSaveSettings.addEventListener('click', async () => {
       const apiKey = els.settingsApiKey.value.trim();
@@ -539,13 +526,7 @@
           pitch: parseInt(els.settingsPitch.value)
         });
 
-        populateLangFilter(voicesCache, els.langFilter, els.settingsLang.value);
-        filterVoices(voicesCache, els.settingsLang.value, els.voiceSelect, els.settingsVoice.value);
-        els.speedControl.value = els.settingsSpeed.value;
-        els.speedDisplay.textContent = parseFloat(els.settingsSpeed.value).toFixed(1) + 'x';
-        els.pitchControl.value = els.settingsPitch.value;
-        els.pitchDisplay.textContent = parseInt(els.settingsPitch.value);
-
+        syncMainControls();
         hideError();
         showView('main');
       } catch (err) {

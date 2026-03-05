@@ -37,21 +37,23 @@ const Api = (() => {
     return 3;
   }
 
-  async function synthesizeChunk(apiKey, text, voiceName, languageCode, speakingRate, pitch) {
+  // config: { apiKey, voiceName, languageCode, speakingRate, pitch }
+  async function synthesizeChunk(config, text) {
     const audioConfig = {
       audioEncoding: 'MP3',
-      speakingRate: speakingRate || 1.0
+      speakingRate: config.speakingRate || 1.0
     };
-    if (pitch && pitch !== 0) {
-      audioConfig.pitch = pitch;
+    if (config.pitch) {
+      audioConfig.pitch = config.pitch;
     }
+
     const body = {
       input: { text },
-      voice: { languageCode, name: voiceName },
+      voice: { languageCode: config.languageCode, name: config.voiceName },
       audioConfig
     };
 
-    const res = await fetch(`${BASE}/text:synthesize?key=${encodeURIComponent(apiKey)}`, {
+    const res = await fetch(`${BASE}/text:synthesize?key=${encodeURIComponent(config.apiKey)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)

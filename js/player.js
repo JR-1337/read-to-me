@@ -2,6 +2,7 @@ const Player = (() => {
   let audioEl = null;
   let audioContext = null;
   let previousBlobUrl = null;
+  let audioChunksBase64 = [];
 
   const state = {
     queue: [],
@@ -13,10 +14,10 @@ const Player = (() => {
 
   // Word timing for current chunk
   let chunkWords = [];
-  let wordTimings = []; // cumulative end-time for each word
+  let wordTimings = [];
   let currentWordIndex = -1;
 
-  // Callbacks set by app.js
+  // Callbacks
   let onProgress = null;
   let onStateChange = null;
   let onError = null;
@@ -53,10 +54,8 @@ const Player = (() => {
     state.config = config;
     audioChunksBase64 = [];
 
-    // iOS audio unlock
     unlockAudio();
 
-    // Setup media session
     const title = text.length > 60 ? text.slice(0, 57) + '...' : text;
     MediaSessionManager.setup(title, {
       play: resume,
@@ -71,48 +70,33 @@ const Player = (() => {
 
   async function synthesizeAndPlay(index) {
     if (!state.isPlaying || index >= state.queue.length) {
-      if (index >= state.queue.length) {
-        onComplete();
-      }
+      if (index >= state.queue.length) onComplete();
       return;
     }
 
     state.currentIndex = index;
     onProgress(index + 1, state.queue.length);
 
-    // Prepare word timing for this chunk
-    chunkWords = state.queue[index].split(/(\s+)/); // preserve whitespace tokens
+    chunkWords = state.queue[index].split(/(\s+)/);
     currentWordIndex = -1;
 
-    // Notify app of new chunk
     onChunkStart(index, state.queue[index]);
 
     try {
-      const base64 = await Api.synthesizeChunk(
-        state.config.apiKey,
-        state.queue[index],
-        state.config.voiceName,
-        state.config.languageCode,
-        state.config.speakingRate,
-        state.config.pitch
-      );
+      const base64 = await Api.synthesizeChunk(state.config, state.queue[index]);
 
       if (!state.isPlaying) return;
 
       audioChunksBase64.push(base64);
       const blobUrl = base64ToBlobUrl(base64);
 
-      if (previousBlobUrl) {
-        URL.revokeObjectURL(previousBlobUrl);
-      }
+      if (previousBlobUrl) URL.revokeObjectURL(previousBlobUrl);
       previousBlobUrl = blobUrl;
 
       audioEl.src = blobUrl;
       audioEl.playbackRate = 1.0;
 
-      // Wait for duration to be available before building timings
       audioEl.addEventListener('loadedmetadata', buildWordTimings, { once: true });
-
       await audioEl.play();
     } catch (err) {
       onError(err.message);
@@ -124,11 +108,9 @@ const Player = (() => {
     const duration = audioEl.duration;
     if (!duration || !isFinite(duration)) return;
 
-    // Get only actual words (not whitespace tokens)
     const actualWords = chunkWords.filter((w) => w.trim().length > 0);
     const totalChars = actualWords.reduce((sum, w) => sum + w.length, 0);
 
-    // Build cumulative timings proportional to word length
     wordTimings = [];
     let cumulative = 0;
     for (const word of actualWords) {
@@ -142,7 +124,6 @@ const Player = (() => {
 
     const currentTime = audioEl.currentTime;
     let newWordIndex = 0;
-
     for (let i = 0; i < wordTimings.length; i++) {
       if (currentTime < wordTimings[i]) {
         newWordIndex = i;
@@ -230,13 +211,18 @@ const Player = (() => {
     }
   }
 
-  function base64ToBlobUrl(base64) {
+  // Shared utility: base64 string → Uint8Array
+  function base64ToBytes(base64) {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
       bytes[i] = binary.charCodeAt(i);
     }
-    const blob = new Blob([bytes], { type: 'audio/mpeg' });
+    return bytes;
+  }
+
+  function base64ToBlobUrl(base64) {
+    const blob = new Blob([base64ToBytes(base64)], { type: 'audio/mpeg' });
     return URL.createObjectURL(blob);
   }
 
@@ -250,12 +236,16 @@ const Player = (() => {
     return state.queue;
   }
 
-  // Collect base64 chunks for download
-  let audioChunksBase64 = [];
-
   function getAudioChunks() {
     return audioChunksBase64;
   }
 
-  return { init, play, pause, resume, stop, getState, getQueue, getAudioChunks };
+  // Build a combined MP3 blob from all synthesized chunks
+  function buildDownloadBlob() {
+    if (audioChunksBase64.length === 0) return null;
+    const byteArrays = audioChunksBase64.map(base64ToBytes);
+    return new Blob(byteArrays, { type: 'audio/mpeg' });
+  }
+
+  return { init, play, pause, resume, stop, getState, getQueue, getAudioChunks, buildDownloadBlob };
 })();
