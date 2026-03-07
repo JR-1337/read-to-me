@@ -56,7 +56,6 @@
   let activeWordEl = null;
   let activeWordSpans = null;
   let chunkElements = [];
-  let allChunks = [];
 
   // Sleep timer
   let sleepTimerId = null;
@@ -210,36 +209,36 @@
   // ─── Reader View ───
 
   function buildReaderView(chunks) {
-    allChunks = chunks;
-    chunkElements = [];
-    els.readerView.innerHTML = '';
-  }
-
-  function renderChunk(chunkIndex) {
-    els.readerView.innerHTML = '';
+    const frag = document.createDocumentFragment();
     chunkElements = [];
 
-    if (chunkIndex >= allChunks.length) return;
+    for (let i = 0; i < chunks.length; i++) {
+      const chunkSpan = document.createElement('span');
+      chunkSpan.className = 'chunk';
+      chunkSpan.dataset.index = i;
 
-    const chunkSpan = document.createElement('span');
-    chunkSpan.className = 'chunk active';
-    chunkSpan.dataset.index = chunkIndex;
+      const tokens = chunks[i].split(/(\s+)/);
+      for (const token of tokens) {
+        if (token.trim().length === 0) {
+          chunkSpan.appendChild(document.createTextNode(token));
+        } else {
+          const wordSpan = document.createElement('span');
+          wordSpan.className = 'word';
+          wordSpan.textContent = token;
+          chunkSpan.appendChild(wordSpan);
+        }
+      }
 
-    const tokens = allChunks[chunkIndex].split(/(\s+)/);
-    for (const token of tokens) {
-      if (token.trim().length === 0) {
-        chunkSpan.appendChild(document.createTextNode(token));
-      } else {
-        const wordSpan = document.createElement('span');
-        wordSpan.className = 'word';
-        wordSpan.textContent = token;
-        chunkSpan.appendChild(wordSpan);
+      frag.appendChild(chunkSpan);
+      chunkElements.push(chunkSpan);
+
+      if (i < chunks.length - 1) {
+        frag.appendChild(document.createTextNode(' '));
       }
     }
 
-    els.readerView.appendChild(chunkSpan);
-    chunkElements.push(chunkSpan);
-    return chunkSpan;
+    els.readerView.innerHTML = '';
+    els.readerView.appendChild(frag);
   }
 
   function showReaderView() {
@@ -256,14 +255,18 @@
   }
 
   function highlightChunk(chunkIndex) {
-    activeWordEl = null;
+    if (activeChunkEl) activeChunkEl.classList.remove('active');
+    if (activeWordEl) {
+      activeWordEl.classList.remove('active');
+      activeWordEl = null;
+    }
     activeWordSpans = null;
 
-    const chunkSpan = renderChunk(chunkIndex);
-    if (chunkSpan) {
-      activeChunkEl = chunkSpan;
+    if (chunkIndex < chunkElements.length) {
+      activeChunkEl = chunkElements[chunkIndex];
+      activeChunkEl.classList.add('active');
       activeWordSpans = activeChunkEl.querySelectorAll('.word');
-      els.readerView.scrollTop = 0;
+      activeChunkEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }
 
@@ -275,10 +278,10 @@
       activeWordEl.classList.add('active');
       // Scroll within the reader-view container to center the active word
       const container = els.readerView;
-      const wordTop = activeWordEl.offsetTop;
-      const wordHeight = activeWordEl.offsetHeight;
-      const containerHeight = container.clientHeight;
-      const targetScroll = wordTop - (containerHeight / 2) + (wordHeight / 2);
+      const wordRect = activeWordEl.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const wordTopInContainer = wordRect.top - containerRect.top + container.scrollTop;
+      const targetScroll = wordTopInContainer - (container.clientHeight / 2) + (wordRect.height / 2);
       container.scrollTo({ top: targetScroll, behavior: 'smooth' });
     }
   }
@@ -341,6 +344,8 @@
       const idx = parseInt(item.dataset.index);
       if (history[idx]) {
         els.textInput.value = history[idx].text;
+        els.textInput.selectionStart = 0;
+        els.textInput.selectionEnd = 0;
         updateTextStats();
         showView('main');
       }
@@ -484,6 +489,8 @@
       try {
         const article = await extractArticle(fullText);
         els.textInput.value = article;
+        els.textInput.selectionStart = 0;
+        els.textInput.selectionEnd = 0;
         fullText = article;
         updateTextStats();
       } catch (err) {
@@ -495,10 +502,9 @@
       }
     }
 
-    // Cursor-based start: only when user has explicitly selected a range
+    // Cursor-based start: play from wherever the cursor is placed
     const start = els.textInput.selectionStart;
-    const end = els.textInput.selectionEnd;
-    if (start !== end && start > 0) {
+    if (start > 0) {
       const text = els.textInput.value.slice(start).trim();
       if (!text) {
         showError('No text after cursor position');
@@ -531,6 +537,8 @@
         const text = await navigator.clipboard.readText();
         if (text) {
           els.textInput.value = text;
+          els.textInput.selectionStart = 0;
+          els.textInput.selectionEnd = 0;
           updateTextStats();
         }
       } catch {
@@ -691,6 +699,8 @@
     let content = sharedText || sharedUrl || sharedTitle;
     if (content) {
       els.textInput.value = content;
+      els.textInput.selectionStart = 0;
+      els.textInput.selectionEnd = 0;
       updateTextStats();
       window.history.replaceState({}, '', window.location.pathname);
     }
