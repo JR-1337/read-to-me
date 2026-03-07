@@ -56,6 +56,7 @@
   let activeWordEl = null;
   let activeWordSpans = null;
   let chunkElements = [];
+  let allChunks = [];
 
   // Sleep timer
   let sleepTimerId = null;
@@ -209,36 +210,36 @@
   // ─── Reader View ───
 
   function buildReaderView(chunks) {
-    const frag = document.createDocumentFragment();
+    allChunks = chunks;
+    chunkElements = [];
+    els.readerView.innerHTML = '';
+  }
+
+  function renderChunk(chunkIndex) {
+    els.readerView.innerHTML = '';
     chunkElements = [];
 
-    for (let i = 0; i < chunks.length; i++) {
-      const chunkSpan = document.createElement('span');
-      chunkSpan.className = 'chunk';
-      chunkSpan.dataset.index = i;
+    if (chunkIndex >= allChunks.length) return;
 
-      const tokens = chunks[i].split(/(\s+)/);
-      for (const token of tokens) {
-        if (token.trim().length === 0) {
-          chunkSpan.appendChild(document.createTextNode(token));
-        } else {
-          const wordSpan = document.createElement('span');
-          wordSpan.className = 'word';
-          wordSpan.textContent = token;
-          chunkSpan.appendChild(wordSpan);
-        }
-      }
+    const chunkSpan = document.createElement('span');
+    chunkSpan.className = 'chunk active';
+    chunkSpan.dataset.index = chunkIndex;
 
-      frag.appendChild(chunkSpan);
-      chunkElements.push(chunkSpan);
-
-      if (i < chunks.length - 1) {
-        frag.appendChild(document.createTextNode(' '));
+    const tokens = allChunks[chunkIndex].split(/(\s+)/);
+    for (const token of tokens) {
+      if (token.trim().length === 0) {
+        chunkSpan.appendChild(document.createTextNode(token));
+      } else {
+        const wordSpan = document.createElement('span');
+        wordSpan.className = 'word';
+        wordSpan.textContent = token;
+        chunkSpan.appendChild(wordSpan);
       }
     }
 
-    els.readerView.innerHTML = '';
-    els.readerView.appendChild(frag);
+    els.readerView.appendChild(chunkSpan);
+    chunkElements.push(chunkSpan);
+    return chunkSpan;
   }
 
   function showReaderView() {
@@ -255,18 +256,14 @@
   }
 
   function highlightChunk(chunkIndex) {
-    if (activeChunkEl) activeChunkEl.classList.remove('active');
-    if (activeWordEl) {
-      activeWordEl.classList.remove('active');
-      activeWordEl = null;
-    }
+    activeWordEl = null;
     activeWordSpans = null;
 
-    if (chunkIndex < chunkElements.length) {
-      activeChunkEl = chunkElements[chunkIndex];
-      activeChunkEl.classList.add('active');
+    const chunkSpan = renderChunk(chunkIndex);
+    if (chunkSpan) {
+      activeChunkEl = chunkSpan;
       activeWordSpans = activeChunkEl.querySelectorAll('.word');
-      activeChunkEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      els.readerView.scrollTop = 0;
     }
   }
 
@@ -276,7 +273,13 @@
     if (wordIndex < activeWordSpans.length) {
       activeWordEl = activeWordSpans[wordIndex];
       activeWordEl.classList.add('active');
-      activeWordEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // Scroll within the reader-view container to center the active word
+      const container = els.readerView;
+      const wordTop = activeWordEl.offsetTop;
+      const wordHeight = activeWordEl.offsetHeight;
+      const containerHeight = container.clientHeight;
+      const targetScroll = wordTop - (containerHeight / 2) + (wordHeight / 2);
+      container.scrollTo({ top: targetScroll, behavior: 'smooth' });
     }
   }
 
@@ -492,9 +495,10 @@
       }
     }
 
-    // Cursor-based start
+    // Cursor-based start: only when user has explicitly selected a range
     const start = els.textInput.selectionStart;
-    if (start > 0) {
+    const end = els.textInput.selectionEnd;
+    if (start !== end && start > 0) {
       const text = els.textInput.value.slice(start).trim();
       if (!text) {
         showError('No text after cursor position');
