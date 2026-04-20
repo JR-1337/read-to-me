@@ -6,11 +6,27 @@ const Chunker = (() => {
     return encoder.encode(text).length;
   }
 
+  function sanitize(text) {
+    if (!text) return '';
+    return text
+      .replace(/\r\n/g, '\n')
+      // Strip non-speech symbols (markdown, brackets, pipes, slashes, backticks, etc.)
+      // Keep: letters, numbers, whitespace, sentence/clause punctuation, apostrophe, quotes, parens, hyphen
+      .replace(/[*_#>|`~\[\]{}\\\/^=+<@$%&]/g, ' ')
+      // Em dash / double-hyphen → comma pause
+      .replace(/[\u2013\u2014]/g, ', ')
+      .replace(/--+/g, ', ')
+      // Collapse repeated punctuation: !!! → !
+      .replace(/([.!?,;:])\1+/g, '$1')
+      // Collapse whitespace inside lines but preserve paragraph breaks
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n');
+  }
+
   function chunkText(text, maxBytes = MAX_BYTES) {
     if (!text || !text.trim()) return [];
 
-    // Normalize whitespace
-    const normalized = text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    const normalized = sanitize(text).trim();
 
     // Split at sentence boundaries: after . ! ? followed by whitespace or end
     const sentences = normalized.split(/(?<=[.!?])\s+/);
@@ -89,5 +105,5 @@ const Chunker = (() => {
     return text.slice(0, end);
   }
 
-  return { chunkText, byteLength };
+  return { chunkText, byteLength, sanitize };
 })();

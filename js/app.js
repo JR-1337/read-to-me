@@ -51,6 +51,7 @@
 
   let voicesCache = [];
   let errorTimeout = null;
+  let lastCursorPos = 0;
 
   let activeChunkEl = null;
   let activeWordEl = null;
@@ -455,6 +456,21 @@
     });
   }
 
+  // Walk back from cursor to start of current sentence (after previous .!?\n)
+  // so playback never starts mid-word or mid-clause.
+  function snapToSentenceStart(text, pos) {
+    if (pos <= 0) return 0;
+    for (let i = pos - 1; i > 0; i--) {
+      const c = text[i];
+      if (c === '.' || c === '!' || c === '?' || c === '\n') {
+        let j = i + 1;
+        while (j < text.length && /\s/.test(text[j])) j++;
+        return j;
+      }
+    }
+    return 0;
+  }
+
   function buildPlayConfig() {
     const settings = Settings.get();
     return {
@@ -492,18 +508,18 @@
       }
     }
 
-    // Cursor-based start
-    const start = els.textInput.selectionStart;
-    if (start > 0) {
-      const text = els.textInput.value.slice(start).trim();
-      if (!text) {
-        showError('No text after cursor position');
+    // Cursor-based start: prefer live selectionStart, fall back to last tracked.
+    const liveStart = els.textInput.selectionStart;
+    const cursor = (liveStart && liveStart > 0) ? liveStart : lastCursorPos;
+    if (cursor > 0 && cursor < fullText.length) {
+      const snapped = snapToSentenceStart(fullText, cursor);
+      const text = fullText.slice(snapped).trim();
+      if (text) {
+        Settings.clearPosition();
+        Settings.addHistory(fullText);
+        Player.play(text, buildPlayConfig());
         return;
       }
-      Settings.clearPosition();
-      Settings.addHistory(fullText);
-      Player.play(text, buildPlayConfig());
-      return;
     }
 
     // Saved position recovery
@@ -521,6 +537,14 @@
 
   function wireMainEvents() {
     els.textInput.addEventListener('input', updateTextStats);
+
+    // Persist cursor across blur so clicking Play uses the user's intended start.
+    const trackCursor = () => { lastCursorPos = els.textInput.selectionStart || 0; };
+    els.textInput.addEventListener('keyup', trackCursor);
+    els.textInput.addEventListener('mouseup', trackCursor);
+    els.textInput.addEventListener('touchend', trackCursor);
+    els.textInput.addEventListener('blur', trackCursor);
+    els.textInput.addEventListener('input', () => { lastCursorPos = 0; });
 
     els.btnPaste.addEventListener('click', async () => {
       try {

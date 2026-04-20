@@ -176,14 +176,24 @@ const Player = (() => {
     if (!duration || !isFinite(duration)) return;
 
     const actualWords = chunkWords.filter((w) => w.trim().length > 0);
-    // Use sqrt weighting: short words get proportionally more time,
-    // long words get less — closer to natural speech cadence
-    const totalWeight = actualWords.reduce((sum, w) => sum + Math.sqrt(w.length), 0);
+
+    // Weight = sqrt(length) for speech time + pause bonus for trailing punctuation.
+    // Sentence-end (.!?) ≈ extra word; clause (,;:) ≈ half a word.
+    function weight(w) {
+      const last = w[w.length - 1];
+      let pause = 0;
+      if (last === '.' || last === '!' || last === '?') pause = 1.6;
+      else if (last === ',' || last === ';' || last === ':') pause = 0.7;
+      return Math.sqrt(w.length) + pause;
+    }
+
+    const weights = actualWords.map(weight);
+    const totalWeight = weights.reduce((s, w) => s + w, 0);
 
     wordTimings = [];
     let cumulative = 0;
-    for (const word of actualWords) {
-      cumulative += (Math.sqrt(word.length) / totalWeight) * duration;
+    for (let i = 0; i < actualWords.length; i++) {
+      cumulative += (weights[i] / totalWeight) * duration;
       wordTimings.push(cumulative);
     }
   }
