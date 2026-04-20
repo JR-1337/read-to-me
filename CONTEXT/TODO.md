@@ -25,9 +25,9 @@ Rules:
 - (none)
 
 ## Verification
-- Last validated: TTS code (cursor/sentence/punctuation) verified by browser test 2026-04-20
-- Missing validation: BOOTSTRAP Upgrade-Mode run on TTS; LOOP_CREATION Step 2 repair on punct-cleaner; first punct-cleaner dry run
-- RISK: LOOP_CREATION Step 2 re-baselines .task-hashes from current tasks/ content; fill task-01 and task-h01 BEFORE retrofit or accept empty-stub baseline
+- Last validated: BOOTSTRAP Upgrade-Mode v0->v1 -- byte-diff confirms user content preserved, all 4 CONTEXT schemas at Version: 1 (2026-04-20)
+- Missing validation: none
+- RISK: none
 
 ## Completed
 - [2026-04-20] Deleted LOOP/punct-cleaner/ -- exploratory pre-holdout scaffold, no dry runs recorded; recreate via LOOP_CREATION.md if needed
