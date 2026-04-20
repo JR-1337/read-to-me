@@ -1,0 +1,9 @@
+# Claude Code local preferences
+CLAUDE.local.md
+
+# Context-system migration scratch (external tooling)
+.context-migration/
+.migration-recovery/
+# Snapshot used by Upgrade-Mode byte-preservation verification (Step 13).
+# Deleted on successful upgrade; persists if Step 13 detected user-content drift.
+CONTEXT/.upgrade-snapshot/

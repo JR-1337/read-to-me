@@ -1,0 +1,55 @@
+---
+description: Canonical memory ownership and read/write rules for TTS
+alwaysApply: true
+---
+
+# SYSTEM_DIRECTIVE: CONTEXT_SYSTEM
+
+## Memory Ownership
+
+CONTEXT/* is the only canonical mutable memory.
+- TODO.md         -> current worklist, blockers, verification
+- DECISIONS.md    -> durable decisions with rationale and Confidence
+- ARCHITECTURE.md -> current structure snapshot
+- LESSONS.md      -> preferences, corrections, pitfalls (scoped)
+- handoffs/       -> one session-continuity file at a time
+
+Ignore CLAUDE.md during normal work. Read it only for adapter repair.
+
+## Memory Style
+
+Telegraphic ASCII. Bullets under 12 words. Sentences under 20 words.
+ASCII operators only: != == -> => in not and or, plus "blocked by", "TODO:", "RISK:".
+No LaTeX, no Unicode math, no box-drawing, no em-dashes.
+
+## Boot Read
+
+TODO.md, DECISIONS.md, ARCHITECTURE.md.
+Also LESSONS.md when preferences may matter.
+Current handoff only when resuming continuity.
+
+## Module Adapters
+
+None yet. Create .cursor/rules/module-{name}.mdc when a subtree grows its own runtime, conventions, integration, or repeated co-edited cluster.
+
+## Mid-Chat Re-Read
+
+Re-read a memory file when it changed, when scope shifts, when a contradiction appears, or before edits that depend on current plan, decisions, or architecture.
+
+## Write Triggers
+
+- TODO.md         -> task status, order, blockers, verification change
+- DECISIONS.md    -> durable direction chosen or proven by implementation
+- ARCHITECTURE.md -> structure, boundaries, flows, or integrations change
+- LESSONS.md      -> durable preference, correction, or pitfall emerges
+- handoffs/       -> explicit end-of-session only
+
+## End-Of-Task Sync
+
+Update the relevant CONTEXT/* file before closing a task. Do not update adapters during routine progress.
+
+## Do Not Write
+
+- Do not store task state in CLAUDE.md or this rule file.
+- Do not duplicate CLAUDE.md content here; the two adapters are independent.
+- Do not write to LOOP/* during routine work (no LOOP/ exists in this project yet).
