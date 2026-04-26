@@ -12,8 +12,9 @@ Sections (in order):
 Rules:
 - Bullets under 12 words, sentences under 20 words, no paragraphs.
 - ASCII operators only (see Operator Legend in PROJECT_MEMORY_BOOTSTRAP.md).
-- Do not store rationale (use DECISIONS.md), architecture (use ARCHITECTURE.md),
-  or preferences (use LESSONS.md).
+- If you catch yourself writing rationale, move it to DECISIONS.md.
+- If you catch yourself writing architecture notes, move them to ARCHITECTURE.md.
+- If you catch yourself writing preferences, move them to LESSONS.md.
 - Items graduate to Completed when done and verified. Durable rationale
   moves to DECISIONS.md.
 -->
@@ -25,11 +26,12 @@ Rules:
 - (none)
 
 ## Verification
-- Last validated: BOOTSTRAP Upgrade-Mode v0->v1 -- byte-diff confirms user content preserved, all 4 CONTEXT schemas at Version: 1 (2026-04-20)
+- Last validated 2026-04-26: BOOTSTRAP Upgrade-Mode pre-v2.7 -> v2.9 -- byte-diff confirms 73 lines user content preserved across 4 CONTEXT files; AGENTS.md canonical + 3 shims; DECISIONS schema v1 -> v2 (adds archive behavior)
 - Missing validation: none
 - RISK: none
 
 ## Completed
+- [2026-04-26] context-system pre-v2.7 -> v2.9 upgrade: AGENTS.md canonical + 3 shims (CLAUDE/KIMI/.mdc; KIMI.md created from scratch); CONTEXT/* schema headers refreshed (DECISIONS v1 -> v2); 73 lines user content preserved verbatim. Branch C consolidation. -56 lines of duplicated adapter routing.
 - [2026-04-20] Deleted LOOP/punct-cleaner/ -- exploratory pre-holdout scaffold, no dry runs recorded; recreate via LOOP_CREATION.md if needed
 - [2026-04-20] Scaffold commit db69602: CONTEXT/, CLAUDE.md, .cursor/, .gitignore, LOOP/ -- 19 files, 825 insertions
 - [2026-04-20] BOOTSTRAP Upgrade-Mode v0->v1: 4 CONTEXT/* schemas, DECISIONS+LESSONS templates updated, CLAUDE.md Loop Access Rules appended, .gitignore extended -- verified by byte-diff user content preserved

@@ -7,8 +7,8 @@ Rules:
 - Snapshot of the system as it is now. Not a log of how it got here.
 - Concise enough to rescan quickly. Long details belong in reference docs.
 - Describe components, flows, integrations, and boundaries.
-- Do not store task state (use TODO.md), rationale history (use DECISIONS.md),
-  or preferences (use LESSONS.md).
+- If you catch yourself writing task state, move it to TODO.md. Rationale
+  history belongs in DECISIONS.md; preferences belong in LESSONS.md.
 - Bullets under 12 words, sentences under 20 words, no paragraphs.
 - ASCII operators only.
 - Update on structural change, not on routine progress.
