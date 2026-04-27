@@ -1,5 +1,5 @@
 <!-- SCHEMA: TODO.md
-Version: 1
+Version: 3
 Purpose: current worklist, blockers, verification state, recent completions.
 Write mode: overwrite in place as status changes. Not append-only.
 

@@ -1,5 +1,5 @@
 <!-- SCHEMA: LESSONS.md
-Version: 1
+Version: 3
 Purpose: durable user preferences, repeated pitfalls, and workflow corrections.
 Write mode: append new entries. Update Affirmations counter on recurrence.
 
@@ -12,8 +12,12 @@ Rules:
   a duplicate. Duplicates dilute the graduation signal.
 - Increment Affirmations when the user restates the lesson or the same
   correction recurs in a later session.
-- Graduate to the root adapter when Affirmations reaches 2, OR when its
-  absence caused a repeated failure class that cost real time.
+- Graduate to the root adapter (or kit prompt) when Affirmations reaches 2,
+  OR when its absence caused a repeated failure class that cost real time.
+  When a lesson is folded into a kit prompt, root adapter, or canonical
+  CONTEXT file, mark the entry with `Graduated: YYYY-MM-DD to <target>` so
+  future sessions do not re-fold and the archive flow can move it under
+  ceiling pressure.
 - Confidence level only when the lesson is inferred rather than explicitly
   stated by the user. Same H/M/L scale as DECISIONS.md (same grammar).
 - Optional Evidence field when the lesson came from auto-loop observation.
@@ -27,6 +31,27 @@ Rules:
   remove the duplicate.
 - Bullets under 12 words, sentences under 20 words, no paragraphs.
 - ASCII operators only.
+
+Archive behavior:
+- Active file ceiling: 200 lines. Above ceiling, move oldest entries
+  to CONTEXT/archive/lessons-archive.md until line count is at or below
+  60 percent of ceiling (120 lines for the 200-line ceiling). Cut deep
+  on each pass so the next trigger is not immediate.
+- Move triggers: (1) entry gains a `Graduated: YYYY-MM-DD to <target>` field;
+  (2) ceiling crossed (forced); (3) session-end opportunistic when
+  entries are clearly stale (lesson references files no longer in the
+  project, or the cited failure class can no longer occur).
+- Move priority: graduated entries first, oldest first; then oldest
+  non-graduated by entry order. Never move the top 5 newest entries.
+- Both files newest-at-top. Moved entries keep all fields intact,
+  including Affirmations counter and Graduated note.
+- On first move, create CONTEXT/archive/lessons-archive.md from
+  its schema (see lessons-archive.md header below) if absent.
+- Cross-project graduation flow is separate and unchanged:
+  `[GLOBAL]`-tagged lessons hitting 2+ cross-project affirmations move to
+  `{GLOBAL_ROOT}/CONTEXT/LESSONS.md` per HANDOFF graduation flow, NOT to
+  the per-project archive. The archive holds project-scoped graduated
+  and stale entries only.
 -->
 
 (no lessons recorded yet)
@@ -46,7 +71,7 @@ Affirmations: 1
 ## [MODULE: auth] -- [Lesson title, inferred]
 Lesson: [what to do or avoid]
 Context: [when it applies]
-Confidence: M - [what would verify]
+Confidence: M -- [what would verify]
 Affirmations: 0
 
 ## [PROJECT] -- [Lesson ratified from auto-loop]

@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Thin routing layer for any coding agent (Claude Code, Cursor, Kimi CLI, Codex, Aider, Windsurf, Copilot, Amp, RooCode, etc.) working in this project. Canonical mutable memory lives in `CONTEXT/*`. This file is intentionally stable; update only when routing, ownership, or read/write behavior changes.
+Thin routing layer for any coding agent (Claude Code, Cursor, Codex, Aider, Windsurf, Copilot, Amp, RooCode, etc.) working in this project. Canonical mutable memory lives in `CONTEXT/*`. This file is intentionally stable; update only when routing, ownership, or read/write behavior changes.
 
 ## Canonical Memory
 
@@ -39,11 +39,17 @@ Confidence format on DECISIONS and inferred LESSONS entries:
 
 Create `{module-name}/AGENTS.md` only when the subtree has distinct runtime, conventions, or an external integration. Per AGENTS.md spec, nested files take precedence (nearest wins). Keep module adapters under 100 lines. Module adapters own local purpose, key files, conventions, boundaries -- nothing project-wide.
 
+When `{module-name}/AGENTS.md` exists, BOOTSTRAP Step 10b auto-deploys two sibling shims under the same nearest-wins discipline:
+- `{module-name}/CLAUDE.md` -- so Claude Code's directory walk picks up module routing
+- `{module-name}/.cursor/rules/{module-name}.mdc` -- so Cursor's nested `.cursor/rules/` discovery picks up module routing
+
+Codex reads AGENTS.md natively and needs no shim. Module shims stay under 25 lines and only point back to the module's AGENTS.md.
+
 ## Boundaries
 
 In scope: routing between any coding agent and `CONTEXT/*`.
 
-Out of scope: storing live task state, handoff text, decision history, dated session notes. The per-tool shim files (`CLAUDE.md`, `.cursor/rules/context-system.mdc`, `KIMI.md`) carry only harness-specific glue and a pointer back here; if you find yourself adding routing rules to a shim, the rule belongs in this file instead.
+Out of scope: storing live task state, handoff text, decision history, dated session notes. The per-tool shim files (project-root `CLAUDE.md`, `.cursor/rules/context-system.mdc`, plus any `{module}/CLAUDE.md` and `{module}/.cursor/rules/*.mdc` deployed by Step 10b) carry only harness-specific glue and a pointer back to their canonical AGENTS.md (root or module). If you find yourself adding routing rules to a shim, the rule belongs in the AGENTS.md instead.
 
 ## Loop Access Rules
 
