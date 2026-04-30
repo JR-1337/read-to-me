@@ -1,5 +1,5 @@
 <!-- SCHEMA: ARCHITECTURE.md
-Version: 3
+Version: 5.2
 Purpose: current structure, boundaries, flows, and integrations.
 Write mode: overwrite the snapshot. Do not append history.
 
@@ -9,7 +9,7 @@ Rules:
 - Describe components, flows, integrations, and boundaries.
 - If you catch yourself writing task state, move it to TODO.md. Rationale
   history belongs in DECISIONS.md; preferences belong in LESSONS.md.
-- Bullets under 12 words, sentences under 20 words, no paragraphs.
+- Concision via shape, not word count -- match the example structure.
 - ASCII operators only.
 - Update on structural change, not on routine progress.
 -->

@@ -9,4 +9,4 @@ Canonical routing lives in `../../AGENTS.md`. Read that first.
 
 This file exists because Cursor's `.cursor/rules/*.mdc` mechanism with `alwaysApply: true` guarantees this rule loads at every session start regardless of how Cursor's AGENTS.md auto-load behaves; the shim hands routing back to the canonical adapter.
 
-Cursor module adapters: legacy pattern is `.cursor/rules/module-{module-name}.mdc` with `alwaysApply: false` and scoped `globs`. The current convention is nested `{module-name}/AGENTS.md` per the AGENTS.md spec (nearest wins). Use nested AGENTS.md for new module adapters.
+Cursor module adapters: nested `{module-name}/AGENTS.md` per the AGENTS.md spec (nearest wins) is the canonical module adapter. BOOTSTRAP Step 10b auto-deploys a sibling `{module-name}/.cursor/rules/{module-name}.mdc` shim so Cursor's nested `.cursor/rules/` discovery picks up the module routing. See the `{module-name}/.cursor/rules/{module-name}.mdc` module shim template below.

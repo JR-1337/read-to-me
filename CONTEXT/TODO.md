@@ -1,5 +1,5 @@
 <!-- SCHEMA: TODO.md
-Version: 3
+Version: 5.2
 Purpose: current worklist, blockers, verification state, recent completions.
 Write mode: overwrite in place as status changes. Not append-only.
 
@@ -10,7 +10,7 @@ Sections (in order):
 - Completed: up to 5 most recent completed items. Older items drop off.
 
 Rules:
-- Bullets under 12 words, sentences under 20 words, no paragraphs.
+- Concision via shape, not word count -- match the example structure.
 - ASCII operators only (see Operator Legend in PROJECT_MEMORY_BOOTSTRAP.md).
 - If you catch yourself writing rationale, move it to DECISIONS.md.
 - If you catch yourself writing architecture notes, move them to ARCHITECTURE.md.
