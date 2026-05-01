@@ -25,14 +25,6 @@ Rules:
 - ASCII operators only in notes.
 -->
 
-## gold-sources-inventory
-- id: gold-sources-inventory
-- path: rubrics/gold-sources-inventory.md
-- kind: rubric
-- sensitivity: public
-- loop_use: human_review
-- hash_or_version:
-- notes: forward-looking map of in-tree gold (chunker sanitize set, player word-timing heuristic constants, Google Cloud TTS contract surface in js/api.js, PWA shell + service worker version in sw.js, localStorage schema in js/settings.js, MediaSession + IndexedDB + SpeechSynthesis browser API surface). No PII in repo (user-entered API key lives only in browser localStorage). First-loop candidate = chunker sanitize regression scoring or word-timing drift on punctuated text.
 
 <!-- TEMPLATE
 ## fx-example-id

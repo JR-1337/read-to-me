@@ -26,7 +26,7 @@ fail=0
 while IFS= read -r -d '' f; do
   rel="${f#"$DATA"/}"
   case "$rel" in
-    catalog.md|README.md) continue ;;
+    catalog.md|README.md|routing-index.md) continue ;;
   esac
   if ! grep -qF "$rel" "$DATA/catalog.md"; then
     echo "validate-data-catalog: ERROR: '$rel' not referenced in DATA/catalog.md" >&2
