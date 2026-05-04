@@ -9,5 +9,46 @@
       "Bash(gh repo edit JR-1337/read-to-me --visibility public)",
       "Bash(gh repo edit JR-1337/read-to-me --visibility public --accept-visibility-change-consequences)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-snapshot-required.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-no-emdash.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-agents-size.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/block-rm-rf-context.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/validate-schema-header.sh"
+          }
+        ]
+      }
+    ]
   }
 }

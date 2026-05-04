@@ -1,5 +1,5 @@
 <!-- SCHEMA: ARCHITECTURE.md
-Version: 6
+Version: 6.3
 Purpose: current structure, boundaries, flows, and integrations.
 Write mode: overwrite the snapshot each time. This file is a current-state view; rationale history belongs in DECISIONS.md.
 

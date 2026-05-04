@@ -31,7 +31,7 @@ At session start: read `CONTEXT/TODO.md` only. The user's first prompt drives fu
 
 Re-read any memory file when it changed, when scope shifts, when a contradiction surfaces, or before edits that depend on current plan / decisions / architecture.
 
-PreToolUse and PostToolUse hooks installed by `/bootstrap` enforce the operator legend on `CONTEXT/*` writes, the AGENTS.md size cap (12K root / 8K module), the snapshot-before-write guarantee during upgrade, and the `rm -rf CONTEXT/` block. See `.claude/hooks/` for the manifest. Bypass once per session via `CONTEXT_HOOKS_DISABLED=1`.
+PreToolUse and PostToolUse hooks installed by `/bootstrap` enforce the operator legend on `CONTEXT/*` writes, the AGENTS.md size cap (12K root / 8K module), the snapshot-before-write guarantee during upgrade, and the `rm -rf CONTEXT/` block. See `.claude/hooks/` for the manifest. Bypass: `export CONTEXT_HOOKS_DISABLED=1` in the parent shell before launching the harness; inline-prefix on a single tool command does NOT propagate to the hook subprocess. See `hooks/README.md` Bypass section for caveats (systemd / wrapped launchers / `find -delete` alternative).
 
 Position-aware writes: in any file you write or update, place binding constraints at the top, pointers / background in the middle, and currently-active state at the bottom. Lost-in-the-middle attention rot is real; the middle is where the model's attention drops. Critical content goes top or bottom.
 

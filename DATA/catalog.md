@@ -1,5 +1,5 @@
 <!-- SCHEMA: DATA/catalog.md
-Version: 6
+Version: 6.3
 Purpose: inventory of durable artifacts under DATA/ for loop scoring, gold sets,
   rubrics, and governance. Single source of truth for which paths automated
   score.sh may read (loop_use).
@@ -24,7 +24,6 @@ Rules:
 - phi | pii rows require human review before score_input.
 - ASCII operators only in notes.
 -->
-
 
 <!-- TEMPLATE
 ## fx-example-id

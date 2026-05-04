@@ -14,7 +14,9 @@
 #
 # Exit 1 = warning surfaced (PostToolUse non-blocking); Exit 0 = pass.
 #
-# Bypass: CONTEXT_HOOKS_DISABLED=1.
+# Bypass: export CONTEXT_HOOKS_DISABLED=1 in the parent shell BEFORE launching
+# the AI harness (inline shell-prefix on a single tool command does NOT propagate
+# to the hook subprocess in Claude Code).
 
 set -euo pipefail
 

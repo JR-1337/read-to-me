@@ -1,5 +1,5 @@
 <!-- SCHEMA: DATA/routing-index.md
-Version: 6
+Version: 6.3
 Purpose: routing index for project-authoritative sources that live outside DATA/.
   Answers "where does this project keep its gold?" -- points at in-tree files
   (knowledge, schemas, rubrics, fixtures, traces, lineage snapshots) and
@@ -135,3 +135,66 @@ No PII or PHI in repo. User Google Cloud API key lives only in browser localStor
 ## Gaps
 
 - Categories 3, 4, 6, 8 -- no observable artifacts today. Forward-looking: chunker sanitize regression fixtures + word-timing drift samples are first-loop candidates; capture lands under DATA/fixtures/ + DATA/traces/ when allocated.
+
+<!-- TEMPLATE
+# Data Routing Index -- {project-name}
+
+Purpose: pointer map to project-authoritative sources outside DATA/. Refreshed YYYY-MM-DD via /data-capture.
+
+## Per-category map
+
+### Category 1: Ground truth and rubrics
+- path: tests/ground_truth.md
+  sensitivity: internal
+  role: extraction scoring baseline against held-out fixtures.
+  notes: optional.
+
+### Category 2: Representative inputs (fixtures / slices)
+- path: tests/sample_transcript.txt
+  sensitivity: internal
+  role: representative input fixture for pipeline tests.
+
+### Category 3: Behavioral / production traces
+- (no observable artifacts; gap noted)
+
+### Category 4: Metric bridge
+- path: dashboard/metrics-spec.md
+  sensitivity: internal
+  role: maps tracked scalars to client-facing dashboards.
+
+### Category 5: Lineage (snapshots, API/doc versions)
+- path: data/db-backup-vN.sql
+  sensitivity: phi
+  role: versioned DB snapshot pre-migration.
+  notes: gitignored.
+
+### Category 6: Cost / latency / reliability side signals
+- (no observable artifacts; gap noted)
+
+### Category 7: Governance (PII/PHI, retention, tool boundaries)
+- path: .gitignore
+  sensitivity: public
+  role: declares PHI exclusions and retention boundaries.
+
+### Category 8: Negative and gaming probes
+- path: tests/adversarial_inputs.txt
+  sensitivity: internal
+  role: stress-tests degenerate or adversarial inputs.
+
+## External integrations
+
+- Anthropic Claude Opus 4.7 -- extraction (tool_use, temp=0.0).
+- Vendor API X -- description; API version pin.
+
+## Governance summary
+
+PHI: clients/{slug}/ and data/db.* (gitignored, off-repo retention at <path>). PII:
+named-fixture content in tests/ (in-repo, see CONTEXT/TODO if cleanup queued).
+Tool boundaries: docs/tool-policy.md or equivalent. Sensitivity flags on each
+entry are canonical; this section summarizes the policy.
+
+## Gaps
+
+- Category 3, 6 -- no observable artifacts. Forward-looking: drop a path here when
+  the project starts capturing behavioral traces or cost/latency scalars.
+-->

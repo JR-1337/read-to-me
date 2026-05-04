@@ -8,9 +8,12 @@
 #
 # Exit 2 = blocking; Exit 0 = pass-through.
 #
-# Bypass: set CONTEXT_HOOKS_DISABLED=1 in the environment for one shell session.
-# Why: legitimate cases (e.g. archiving a quoted excerpt that contains the chars)
-# need a documented escape valve; the env var keeps the bypass auditable.
+# Bypass: export CONTEXT_HOOKS_DISABLED=1 in the parent shell BEFORE launching
+# the AI harness (inline shell-prefix on a single tool command does NOT propagate
+# to the hook subprocess in Claude Code -- the hook reads its own env, not the
+# Bash command's). Why: legitimate cases (e.g. archiving a quoted excerpt that
+# contains the blocked chars) need a documented escape valve; the env var keeps
+# the bypass auditable.
 
 set -euo pipefail
 
@@ -22,7 +25,7 @@ fi
 # would silently pass everything. Probe with a known codepoint that should match.
 if ! printf 'x' | grep -qP '\x{0078}' 2>/dev/null; then
   printf 'WARN: check-no-emdash.sh requires grep with PCRE (-P) support; non-ASCII operator check is INACTIVE on this system.\n' >&2
-  printf 'Install GNU grep or run with CONTEXT_HOOKS_DISABLED=1 to silence.\n' >&2
+  printf 'Install GNU grep, OR export CONTEXT_HOOKS_DISABLED=1 in the parent shell before launching the harness, to silence.\n' >&2
   exit 1
 fi
 
@@ -55,7 +58,7 @@ if [ -n "$HIT" ]; then
   printf 'File: %s\n' "$FILE" >&2
   printf 'First hits (line:char):\n%s\n' "$HIT" >&2
   printf 'Operator legend: ASCII only (-- for em-dash, x for multiplication, ASCII quotes).\n' >&2
-  printf 'Bypass once: CONTEXT_HOOKS_DISABLED=1 (with documented reason).\n' >&2
+  printf 'Bypass: export CONTEXT_HOOKS_DISABLED=1 in parent shell before launching harness (with documented reason; inline-prefix does not propagate).\n' >&2
   exit 2
 fi
 

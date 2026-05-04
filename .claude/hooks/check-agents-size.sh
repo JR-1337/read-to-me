@@ -15,7 +15,9 @@
 #
 # Exit 2 = blocking; Exit 0 = pass-through.
 #
-# Bypass: CONTEXT_HOOKS_DISABLED=1 in environment.
+# Bypass: export CONTEXT_HOOKS_DISABLED=1 in the parent shell BEFORE launching
+# the AI harness (inline shell-prefix on a single tool command does NOT propagate
+# to the hook subprocess in Claude Code).
 
 set -euo pipefail
 
@@ -69,7 +71,7 @@ if [ "$PROJECTED" -gt "$CAP" ]; then
   printf 'File: %s\n' "$FILE" >&2
   printf 'Projected size: %s chars; cap: %s.\n' "$PROJECTED" "$CAP" >&2
   printf 'Action: trim AGENTS.md or move content into a module adapter (specs/BOOTSTRAP_REFERENCE.md Module Growth Rules).\n' >&2
-  printf 'Bypass once: CONTEXT_HOOKS_DISABLED=1.\n' >&2
+  printf 'Bypass: export CONTEXT_HOOKS_DISABLED=1 in parent shell before launching harness (inline-prefix does not propagate).\n' >&2
   exit 2
 fi
 
