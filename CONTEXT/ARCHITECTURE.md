@@ -1,7 +1,7 @@
 <!-- SCHEMA: ARCHITECTURE.md
-Version: 5.2
+Version: 6
 Purpose: current structure, boundaries, flows, and integrations.
-Write mode: overwrite the snapshot. Do not append history.
+Write mode: overwrite the snapshot each time. This file is a current-state view; rationale history belongs in DECISIONS.md.
 
 Rules:
 - Snapshot of the system as it is now. Not a log of how it got here.
@@ -37,6 +37,7 @@ Rules:
 - Google Cloud Text-to-Speech API -- owned by Google; API key held in localStorage
 - allorigins.win `/raw?url=` -- third-party CORS proxy for URL article extraction; owned by allorigins
 - IndexedDB -- browser-owned; used by audio-cache.js
+- drift-scan cron -- RemoteTrigger trig_015xMW5DNpa91ZnQDhR3Eaus -- weekly Mon 02:07 UTC -- writes CONTEXT/drift-reports/drift-YYYY-MM-DD.md
 
 ## Boundaries
 - In scope: text-to-speech pipeline (sanitize, chunk, synthesize, cache, play, highlight), PWA shell, offline audio cache

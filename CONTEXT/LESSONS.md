@@ -1,5 +1,5 @@
 <!-- SCHEMA: LESSONS.md
-Version: 5.2
+Version: 6
 Purpose: durable user preferences, repeated pitfalls, and workflow corrections; structured for machine-detectable findings extraction.
 Write mode: append new entries. Update Affirmations counter on recurrence.
 
@@ -51,7 +51,7 @@ Rules:
   or meta-agent-ratified (auto-loop observation). Default human (omit).
 - Optional Origin field: short name(s) of the project(s) the lesson originated
   in. Used on globally-graduated entries to preserve provenance.
-- Do not log one-off chat trivia.
+- Skip one-off chat trivia. The graduation signal stays load-bearing only when entries earn their place.
 - If you catch yourself duplicating state from TODO.md or DECISIONS.md,
   remove the duplicate.
 - ASCII operators only.

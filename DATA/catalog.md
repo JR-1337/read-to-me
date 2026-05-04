@@ -1,5 +1,5 @@
 <!-- SCHEMA: DATA/catalog.md
-Version: 5.2
+Version: 6
 Purpose: inventory of durable artifacts under DATA/ for loop scoring, gold sets,
   rubrics, and governance. Single source of truth for which paths automated
   score.sh may read (loop_use).

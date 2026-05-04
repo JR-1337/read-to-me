@@ -1,5 +1,5 @@
 <!-- SCHEMA: DATA/routing-index.md
-Version: 5.2
+Version: 6
 Purpose: routing index for project-authoritative sources that live outside DATA/.
   Answers "where does this project keep its gold?" -- points at in-tree files
   (knowledge, schemas, rubrics, fixtures, traces, lineage snapshots) and
@@ -42,8 +42,9 @@ Refresh triggers (run /data-capture refresh when):
 
 Rules:
 - ASCII operators only.
-- One entry per (path, category) pair. A single file appearing in multiple
-  categories emits multiple entries. Do not collapse.
+- Emit one entry per (path, category) pair. A file appearing in multiple
+  categories produces multiple entries; the per-category map is the primary
+  navigation axis, so keep them separate.
 - `role` is one clause; verbose explanations belong in `notes`.
 - Refresh never silently deletes; mark status: removed instead.
 - This file is human-and-agent readable; not parsed by validate-data-catalog.sh.

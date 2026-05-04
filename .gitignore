@@ -7,3 +7,5 @@ CLAUDE.local.md
 # Snapshot used by Upgrade-Mode byte-preservation verification (Step 13).
 # Deleted on successful upgrade; persists if Step 13 detected user-content drift.
 CONTEXT/.upgrade-snapshot/
+# Transient marker file the snapshot-required hook reads (Step 7 / Step 14).
+.claude/.upgrade-in-progress

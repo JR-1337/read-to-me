@@ -1,5 +1,5 @@
 <!-- SCHEMA: DECISIONS.md
-Version: 5.2
+Version: 6
 Purpose: durable product, architecture, and workflow decisions with rationale.
 Write mode: append new entries at the top. Reverse chronological.
 
@@ -20,7 +20,7 @@ Rules:
   Unratified proposals live in LOOP/<mode>/observations.md Candidates, not here.
 - Optional Evidence field: <mode>/<tag> (<metric>: <value>). Reference only.
   Links a decision to the run that produced the signal.
-- Invalidated entries get marked `Superseded` but stay in the file. Do not erase.
+- Mark invalidated entries `Superseded` and retain them in the file. The audit trail depends on superseded entries staying readable.
 - Rejected alternatives may be noted under the decision when they are likely to
   resurface or when the rejection rationale saves future re-litigation.
 - If you catch yourself writing temporary plans, open questions, or task
